@@ -9,10 +9,14 @@ public class ShutdownHandler implements Runnable {
 
     @Override
     public void run() {
-//        ArrayList<Thread> threads = Crawler.getRunningThreads();
-//        for (Thread thread: threads) {
-//            thread.join();
-//        }
-//        Crawler.getUnprocessedLinks()
+        System.out.println("Exiting...");
+        ArrayList<Thread> threads = Crawler.getRunningThreads();
+        for (Thread thread: threads) {
+            thread.interrupt();
+        }
+
+        for(String link : Crawler.getUnprocessedLinks()) {
+            DBManager.getInstance().addUnprocessedLink(link);
+        }
     }
 }

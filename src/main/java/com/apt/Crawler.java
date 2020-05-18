@@ -5,7 +5,9 @@ import java.util.*;
 
 public class Crawler {
 
-    public static ArrayList<String> links = SeedListGenerator.getSeedLinks();
+    private static ArrayList<Thread> threads;
+
+    private static ArrayList<String> links = SeedListGenerator.getSeedLinks();
     private static Counter counter = new Counter(0);
     private static boolean finishedSeed = false;
     private static ArrayList<String> unprocessedLinks = new ArrayList<>();
@@ -43,17 +45,31 @@ public class Crawler {
     }
 
     public static void main(String[] args) {
+        //Persistence...
+        Runtime.getRuntime().addShutdownHook(new Thread(new ShutdownHandler()));
 
         int numThreads = Integer.parseInt(Utils.getUserInput("Number of threads: "));
-        ArrayList<Thread> threads = new ArrayList<>();
+
+        unprocessedLinks = DBManager.getInstance().getUnprocessedLinks();
+        if(unprocessedLinks.size() != 0){
+            links.clear();
+        }
+
+        threads = new ArrayList<>();
         for (int i = 0; i < numThreads; i++) {
             Thread thread = new Thread(new SeedWorker());
             threads.add(thread);
             threads.get(i).start();
         }
 
-        //Persistence...
-        Runtime.getRuntime().addShutdownHook(new Thread(new ShutdownHandler()));
-
     }
+
+    public static ArrayList<Thread> getRunningThreads() {
+        return threads;
+    }
+    public static ArrayList<String> getUnprocessedLinks() {
+        return unprocessedLinks;
+    }
+
+
 }

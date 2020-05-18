@@ -1,18 +1,20 @@
 package com.apt;
 
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.*;
 import org.bson.Document;
 import org.bson.types.ObjectId;
+
+import javax.print.Doc;
+import java.lang.reflect.Array;
+import java.util.ArrayList;
 
 public class DBManager {
 
 
     private MongoClient mongoClient;
     private MongoDatabase database;
-    private MongoCollection<Document> collection;
+    private MongoCollection<Document> processedPagesCollection;
+    private MongoCollection<Document> unprocessedLinksCollection;
 
     private static DBManager instance;
 
@@ -20,7 +22,8 @@ public class DBManager {
 
         this.mongoClient = MongoClients.create();
         this.database = mongoClient.getDatabase("dex");
-        this.collection = database.getCollection("processed-pages");
+        this.processedPagesCollection = database.getCollection("processed-pages");
+        this.unprocessedLinksCollection = database.getCollection("unprocessed-links");
     }
 
     public void addProcessedPage(Page page){
@@ -31,7 +34,27 @@ public class DBManager {
         processedPage.append("pageContent", page.getPageContent());
 //        processedPage.append("pageLink", page.getOrigin());
 //        processedPage.append("pageLink", page.getOrigin());
-        this.collection.insertOne(processedPage);
+        this.processedPagesCollection.insertOne(processedPage);
+    }
+
+    public void addUnprocessedLink(String link) {
+        Document unprocessedLink = new Document("_id", new ObjectId());
+        unprocessedLink.append("url", link);
+        this.unprocessedLinksCollection.insertOne(unprocessedLink);
+    }
+
+    public ArrayList<String> getUnprocessedLinks() {
+        //Get all data and then delete it...
+        MongoCursor<Document> cursor = this.unprocessedLinksCollection.find().iterator();
+        ArrayList<String> links = new ArrayList<>();
+        while(cursor.hasNext()){
+            links.add(cursor.next().get("url").toString());
+        }
+
+
+        this.unprocessedLinksCollection.drop();
+
+        return links;
     }
 
 

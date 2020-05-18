@@ -18,22 +18,32 @@ public class SeedWorker implements Runnable {
         this.initialLink = Crawler.getAvailableLink();
     }
 
+
+
     private void process(String pageLink){
 
+        try{
+            if(Thread.interrupted()){
+                return;
+            }
 
-        Page page = Utils.getPage(pageLink);
-        if(page == null){
-            return;
+            Page page = Utils.getPage(pageLink);
+            if(page == null){
+                return;
+            }
+            page.saveToDB();
+            ArrayList<String> links = page.getLinks();
+            Crawler.addProcessedLink(pageLink);
+            if(links == null || links.size() == 0){
+                System.out.println("Couldn't find any links on page: " + pageLink);
+            }else{
+                Crawler.addUnprocessedLinks(links);
+            }
+            process(Crawler.getAvailableLink());
+
+        }catch (Exception e){
+
         }
-        page.saveToDB();
-        ArrayList<String> links = page.getLinks();
-        Crawler.addProcessedLink(pageLink);
-        if(links == null || links.size() == 0){
-            System.out.println("Couldn't find any links on page: " + pageLink);
-        }else{
-            Crawler.addUnprocessedLinks(links);
-        }
-        process(Crawler.getAvailableLink());
     }
 
     @Override
