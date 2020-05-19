@@ -29,7 +29,7 @@ public class Utils {
         return list;
     }
 
-    public static Page getPage(String link) {
+    public static String downloadURLData(String link){
         try{
             //Accept redirects
             HttpURLConnection.setFollowRedirects(true);
@@ -41,14 +41,28 @@ public class Utils {
             InputStreamReader inputStreamReader = new InputStreamReader(connection.getInputStream());
             BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
             String line;
-            String stringPage = "";
+            String data = "";
             while((line = bufferedReader.readLine()) != null){
-                stringPage = stringPage + line;
+                data = data + line;
             }
-            return new Page(stringPage, link);
+            return data;
         } catch (Exception e){
 //            e.printStackTrace();
+            if(link.endsWith("robots.txt")){
+                System.out.println("Couldn't find: " + link);
+                return "";
+            }
+            return null;
+        }
+    }
+
+
+    public static Page getPage(String link) {
+        String pageData = Utils.downloadURLData(link);
+        if(pageData == null || pageData == ""){
             return getPage(Crawler.getAvailableLink());
+        }else{
+            return new Page(pageData, link);
         }
     }
 

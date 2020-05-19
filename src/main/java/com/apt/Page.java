@@ -1,5 +1,6 @@
 package com.apt;
 
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.regex.Matcher;
@@ -104,11 +105,11 @@ public class Page {
     private static String extractText(String html) {
         String tagRegex = "<[^>]+>";
 
-        String htmlNoJS = html.replaceAll("<\\s*script[^>]*>.+<\\s*\\/\\s*script>", " ");
-        String htmlNoCSS = htmlNoJS.replaceAll("<\\s*style[^>]*>.+<\\s*\\/\\s*style>", " ");
-        String text = htmlNoCSS.replaceAll(tagRegex, " ");
+        String htmlNoJS = html.replaceAll("<\\s*script[^>]*>.+<\\s*\\/\\s*script>", "");
+        String htmlNoCSS = htmlNoJS.replaceAll("<\\s*style[^>]*>.+<\\s*\\/\\s*style>", "");
+        String text = htmlNoCSS.replaceAll(tagRegex, "");
 
-        return text;
+        return text.replaceAll("\n", "");
     }
 
     private ArrayList<String> extractTags(String tagName){
@@ -181,10 +182,7 @@ public class Page {
         }else if(link != null && this.relativeProtocolLink(link)){
             absoluteURL = this.protocolString + link;
         }else if(link != null && link.startsWith("/")){
-            String[] parts = this.origin.split("/");
-            parts = Arrays.copyOfRange(parts,0, 3);
-            String domain = String.join("/", parts);
-            absoluteURL = domain + link;
+            absoluteURL = RobotsParser.getOriginURL(this.origin) + link;
         }else{
             absoluteURL = link;
         }
@@ -197,6 +195,7 @@ public class Page {
     }
     private void setLinks() {
         ArrayList<String> links = this.extractTags("a");
+        RobotsParser parser = new RobotsParser(this.origin);
         for (int i = 0; i < links.size() ; i++) {
             String link = this.extractAttribute(links.get(i), "href");
             if(link == null || !this.isHTTPLink(link)) {
@@ -205,7 +204,11 @@ public class Page {
             }
             link = this.absoluteURL(link);
             link = this.removeHashLocation(link);
-            links.set(i,link);
+            if(parser.canCrawlLink(link)){
+                links.set(i,link);
+            }else{
+                System.out.println("Can't crawl: " + link);
+            }
         }
 
 

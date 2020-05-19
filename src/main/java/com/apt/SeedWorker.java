@@ -42,7 +42,7 @@ public class SeedWorker implements Runnable {
             process(Crawler.getAvailableLink());
 
         }catch (Exception e){
-
+            e.printStackTrace();
         }
     }
 

@@ -4,8 +4,6 @@ import com.mongodb.client.*;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 
-import javax.print.Doc;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 
 public class DBManager {
@@ -32,8 +30,6 @@ public class DBManager {
         processedPage.append("pageTitle", page.getPageTitle());
         processedPage.append("pageDescription", page.getPageDescription() == null ? "" : page.getPageDescription());
         processedPage.append("pageContent", page.getPageContent());
-//        processedPage.append("pageLink", page.getOrigin());
-//        processedPage.append("pageLink", page.getOrigin());
         this.processedPagesCollection.insertOne(processedPage);
     }
 
