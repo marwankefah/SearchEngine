@@ -1,10 +1,13 @@
 package com.apt;
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Hashtable;
 import java.util.LinkedHashSet;
 import java.util.Scanner;
 
@@ -65,5 +68,18 @@ public class Utils {
             return new Page(pageData, link);
         }
     }
+    
+    
+    public static Hashtable<String, Boolean> getStopWords(String fileName) throws FileNotFoundException
+    {
+    	   File stopWordsFile = new File(fileName);
+    	   Hashtable<String, Boolean> hashMap = new Hashtable<String, Boolean>(); 
+    	   Scanner scan = new Scanner(stopWordsFile); 
+		    while (scan.hasNextLine()) { 
+		      hashMap.put(scan.nextLine(),true);
+		  } 
+		    return hashMap;
+    }
+    
 
 }

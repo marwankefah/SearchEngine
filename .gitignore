@@ -1,2 +1,11 @@
 # Project exclude paths
 /target/
+/.metadata/
+bin/
+bin/
+
+.classpath
+
+.project
+
+.settings/org.eclipse.jdt.core.prefs
