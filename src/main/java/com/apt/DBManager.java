@@ -4,18 +4,13 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoCursor;
-import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Indexes;
 import com.mongodb.client.model.IndexOptions;
 
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.Updates;
-
+import com.mongodb.client.result.UpdateResult;
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.*;
@@ -42,10 +37,9 @@ public class DBManager {
 
         this.mongoClient = MongoClients.create();
         this.database = mongoClient.getDatabase("dex");
-        this.collection = database.getCollection("processed-pages");
         this.invertedCollection = database.getCollection("inverted-index");
+        this.invertedCollection.createIndex(Indexes.ascending("token","Documents.refid"),new IndexOptions().unique(true));
         this.invertedCollection.createIndex(Indexes.ascending("token"),new IndexOptions().unique(true));
-        this.invertedCollection.createIndex(Indexes.ascending("Documents._id"),new IndexOptions().unique(true));
         this.processedPagesCollection = database.getCollection("processed-pages");
         this.unprocessedLinksCollection = database.getCollection("unprocessed-links");
         this.imagesCollection = database.getCollection("images");
@@ -70,6 +64,9 @@ public class DBManager {
                 headerObject.append("content", header.getContent());
                 headersList.add(headerObject);
             }
+            processedPage.append("bodyCount", -1);
+            processedPage.append("titleCount", -1);
+
             this.processedPagesCollection.insertOne(processedPage);
             saveImages(page.getImages());
         }catch (Exception e){
@@ -138,39 +135,128 @@ public class DBManager {
 
         return links;
     }
-
-    public void updateInvertedWordIndex(String word,ObjectId doc_id,int tf,int idf,int tf_idf)
+   
+    public Boolean updateIdfWordIndex(String word,ObjectId doc_id,int idf)
     {
-
-    	if(this.collection.find(Filters.eq("_id",doc_id)).limit(1)!= null)
+    	if(this.invertedCollection.find(Filters.and(Filters.eq("token", word),
+				Filters.eq("Documents.refid",doc_id))) !=null)
+			{
+			
+    		
+    		
+    			return true;
+			}
+    	return false;
+    	
+    }
+    public boolean incrementTermFrequency(String word,ObjectId doc_id,String index)
+    {
+    	UpdateResult x=null;
+    	if(index=="title")
+    	{
+		 x=this.invertedCollection.updateOne(Filters.and(Filters.eq("token", word),
+				Filters.eq("Documents.refid",doc_id))
+				,new BasicDBObject("$inc", new BasicDBObject("Documents.$.tfTitle", 1)));  
+    	}
+    	else if(index=="body")
+    	{
+    		
+   		 x=this.invertedCollection.updateOne(Filters.and(Filters.eq("token", word),
+ 				Filters.eq("Documents.refid",doc_id))
+ 				,new BasicDBObject("$inc", new BasicDBObject("Documents.$.tfBody", 1))); 
+    		
+    	}
+    	else
+    	{
+    		return false;
+    	}
+    	
+    	return x.wasAcknowledged();
+    	
+    }
+    
+    public int getTermFrequency(String word,ObjectId doc_id,String index)
+    {
+		Document doc= this.isInvertedPairExist(word, doc_id);
+		if(doc!=null)
+		{
+			if(index=="title")
+			{
+				return doc.getInteger("tftitle", -2);
+			}
+			else if(index=="body")
+			{
+				return doc.getInteger("tfbody", -2);
+			}			
+		}
+		return -1;
+ 
+   }
+    
+    public Document isInvertedPairExist(String word,ObjectId doc_id)
+    {
+		MongoIterable<Document> cu=this.invertedCollection.find(Filters.and(Filters.eq("token", word),
+				Filters.eq("Documents.refid",doc_id)));
+    	
+		if(cu!=null)
+		{
+			return cu.first();
+			
+		}
+		else
+		{
+			return null;
+		}
+    	
+    }
+    
+    public boolean insertInvertedWordIndex(String word,ObjectId doc_id,int titleCount,int bodyCount,boolean inTitle)
+    {
+    	if(this.processedPagesCollection.find(Filters.eq("_id",doc_id)).limit(1)!= null)
     	{
     		UpdateOptions x=new UpdateOptions();
-    		Document subDoc= new Document("_id",doc_id);
-    		subDoc.append("tf",tf);
-    		subDoc.append("idf", idf);
-    		subDoc.append("tf_idf",tf_idf);
-    		this.invertedCollection.updateOne(Filters.eq("token",word), Updates.push("Documents", subDoc)
-    				,new UpdateOptions().upsert(true));
+    		Document subDoc= new Document("refid",doc_id);
+    		if(inTitle){
+    		subDoc.append("tfTitle",1);
+    		subDoc.append("tfBody", 0);}
+    		else {
+    		subDoc.append("tfBody", 1);
+    		subDoc.append("tfTitle",0);;
+    		}
+    		Document Doc= new Document();
+    		
+    		Doc.append("bodyCount",bodyCount);
+    		Doc.append("titleCount",titleCount);
+    	    BasicDBObject setNewFieldQuery = new BasicDBObject().append("$set", new BasicDBObject(Doc));
+    		this.processedPagesCollection.updateOne(Filters.eq("_id",doc_id), setNewFieldQuery);
+
+    		
+    		return this.invertedCollection.updateOne(Filters.eq("token",word), Updates.push("Documents", subDoc)
+    				,new UpdateOptions().upsert(true)).wasAcknowledged();
     	}
     	else
     	{
     		System.out.println("Error in DB Manager Funtion UpdateInvertedWordindex"
     				+" invalid doc_id");
+    		return false;
     	}
-
-
     }
+    
+    
+
+
+    
 
     public MongoCursor<Document> getCrawledDocuments()
     {
-    	return this.collection.find(Filters.exists("_id")).iterator();
+    	return this.processedPagesCollection.find(Filters.exists("_id")).iterator();
 
     }
 
     public long getDocumentsCount()
     {
 
-    	return this.collection.estimatedDocumentCount();
+    	return this.processedPagesCollection.estimatedDocumentCount();
 
     }
 
