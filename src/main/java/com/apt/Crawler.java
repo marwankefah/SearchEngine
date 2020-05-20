@@ -5,6 +5,8 @@ import java.util.*;
 
 public class Crawler {
 
+    private static final int MAX_NUMBER = 5000;
+
     private static ArrayList<Thread> threads;
 
     private static ArrayList<String> links = SeedListGenerator.getSeedLinks();
@@ -14,10 +16,20 @@ public class Crawler {
     private static ArrayList<String> processedLinks = new ArrayList<String>();
 
     public static String getAvailableLink() {
+        if(processedLinks.size() >= MAX_NUMBER){
+//            Thread.currentThread().interrupt();
+            return null;
+        }
             if(finishedSeed){
                 counter.check(unprocessedLinks.size());
-                String link = unprocessedLinks.get(counter.getCount() - links.size() + 1);
+                int decrementor = 0;
+                if(links.size() != 0){
+                    decrementor = links.size();
+                }
+                String link = unprocessedLinks.get(counter.getCount() - decrementor);
                 counter.increment();
+                DBManager.getInstance().removeUnprocessedLink(link);
+                if(link == null) return getAvailableLink();
                 return link;
             }else{
                 if(links.size() < counter.getCount()+1){
@@ -25,16 +37,28 @@ public class Crawler {
                     return Crawler.getAvailableLink();
                 }
                 String link = links.get(counter.getCount());
+                DBManager.getInstance().removeUnprocessedLink(link);
                 counter.increment();
+                if(link == null) return getAvailableLink();
                 return link;
             }
     }
 
     public static void addUnprocessedLinks(ArrayList<String> links) {
         synchronized (unprocessedLinks){
-            unprocessedLinks.addAll(links);
-            unprocessedLinks = Utils.removeDuplicates(unprocessedLinks);
-            counter.uncheck();
+//            if(unprocessedLinks.size() + Crawler.links.size() >= MAX_NUMBER) return;
+//            if(unprocessedLinks.size() + Crawler.links.size() + links.size() >= MAX_NUMBER){
+//                System.out.println("LOL");
+//                int left = MAX_NUMBER - (unprocessedLinks.size() + Crawler.links.size());
+//                unprocessedLinks.addAll(links.subList(0, left));
+//                unprocessedLinks = Utils.removeDuplicates(unprocessedLinks);
+//                DBManager.getInstance().saveUnprocessedLinks(links.subList(0, left));
+//            }else{
+                unprocessedLinks.addAll(links);
+                unprocessedLinks = Utils.removeDuplicates(unprocessedLinks);
+                DBManager.getInstance().saveUnprocessedLinks(links);
+                counter.uncheck();
+//            }
         }
     }
 
@@ -46,7 +70,7 @@ public class Crawler {
 
     public static void main(String[] args) {
         //Persistence...
-        Runtime.getRuntime().addShutdownHook(new Thread(new ShutdownHandler()));
+//        Runtime.getRuntime().addShutdownHook(new Thread(new ShutdownHandler()));
 
         int numThreads = Integer.parseInt(Utils.getUserInput("Number of threads: "));
 
@@ -54,6 +78,7 @@ public class Crawler {
         if(unprocessedLinks.size() != 0){
             links.clear();
         }
+        DBManager.getInstance().saveUnprocessedLinks(links);
 
         threads = new ArrayList<>();
         for (int i = 0; i < numThreads; i++) {

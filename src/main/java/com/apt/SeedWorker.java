@@ -39,6 +39,8 @@ public class SeedWorker implements Runnable {
             }else{
                 Crawler.addUnprocessedLinks(links);
             }
+            String newLink = Crawler.getAvailableLink();
+            if(newLink == null) return;
             process(Crawler.getAvailableLink());
 
         }catch (Exception e){

@@ -47,7 +47,7 @@ public class Utils {
             }
             return data;
         } catch (Exception e){
-//            e.printStackTrace();
+            if(link == null) return "";
             if(link.endsWith("robots.txt")){
                 System.out.println("Couldn't find: " + link);
                 return "";

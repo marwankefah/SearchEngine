@@ -1,8 +1,8 @@
 package com.apt;
 
-import java.awt.*;
+
+import javax.swing.text.html.CSS;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -13,6 +13,7 @@ public class Page {
     // Also, this should be in an environment file
     // Also, this is wrong!
     // Also, FML
+    // And I didn't need it after all....
     final static String CONNECTION_STRING = "mongodb://localhost:27017/?readPreference=primary&appname=MongoDB%20Compass%20Community&ssl=false";
 
     ArrayList<String> links = null;
@@ -33,14 +34,11 @@ public class Page {
         return pageDescription;
     }
 
-    public String getPageContent() {
-        return pageContent;
-    }
-
     String pageTitle = null;
-    String pageDescription = null;
-    String pageContent = null;
-
+    String pageContent = "";
+    String pageDescription = "";
+    ArrayList<String> paragraphs = new ArrayList<>();
+    ArrayList<Header> headers = new ArrayList<>();
     //Could add keywords & author meta tags but they're not that important...
 
     public Page(String html, String link) {
@@ -76,6 +74,9 @@ public class Page {
         }
     }
 
+    public String getPageContent() {
+        return this.pageContent;
+    }
 
     private void setPageDescription() {
         ArrayList<String> metaTags = this.extractTagSelfClosing("meta");
@@ -86,30 +87,59 @@ public class Page {
                 return;
             }
         }
-        this.pageDescription = "";
     }
 
     private void setPageContent() {
+        ArrayList<String> pTags = this.extractTags("p");
+        for (String pTag: pTags) {
+            this.paragraphs.add(Page.extractText(pTag));
+        }
+        for (int i = 1; i <= 6; i++) {
+            ArrayList<String> hTags = this.extractTags("h" + i);
+            for (String hTag: hTags) {
+                String text = Page.extractText(hTag);
+                Header header = new Header(i, text);
+                this.headers.add(header);
+            }
+        }
+        //If the developer didn't use p tags, fallback to all text in the page
         ArrayList<String> bodyTags = this.extractTags("body");
-        if(bodyTags.size() > 0) {
-            this.pageContent = Page.extractText(bodyTags.get(bodyTags.size() - 1));
+        if(bodyTags.size() == 0){
+            return;
         }else{
             this.pageContent = "";
+            for (String bodyTag: bodyTags) {
+                this.pageContent += " " + Page.extractText(bodyTag);
+            }
+            this.pageContent = this.pageContent.trim();
         }
+
     }
 
     public void saveToDB() {
         DBManager.getInstance().addProcessedPage(this);
     }
 
+    public ArrayList<String> getParagraphs() {
+        return paragraphs;
+    }
+
+    public ArrayList<Header> getHeaders() {
+        return headers;
+    }
+
     private static String extractText(String html) {
         String tagRegex = "<[^>]+>";
+        String CSSRegex = "<\\s*style[^>]*>(.*?)<\\s*/\\s*style>";
+        String JSRegex = "<\\s*script[^>]*>(.*?)<\\s*/\\s*script>";
 
-        String htmlNoJS = html.replaceAll("<\\s*script[^>]*>.+<\\s*\\/\\s*script>", "");
-        String htmlNoCSS = htmlNoJS.replaceAll("<\\s*style[^>]*>.+<\\s*\\/\\s*style>", "");
-        String text = htmlNoCSS.replaceAll(tagRegex, "");
-
-        return text.replaceAll("\n", "");
+        String text = html.replaceAll(CSSRegex, "");
+        text = text.replaceAll(JSRegex, "");
+        text = text.replaceAll(tagRegex, " ");
+        text = text.replaceAll("\n", " ").trim();
+        text = text.replaceAll("&amp;", "&");
+        text = text.replaceAll("&nbsp;", " ");
+        return text.trim();
     }
 
     private ArrayList<String> extractTags(String tagName){
@@ -125,7 +155,7 @@ public class Page {
     }
 
     private ArrayList<String> extractTagSelfClosing(String tagName){
-        //This regex is taken from: https://www.regexpal.com/27540
+        //This regex is a modified version of: https://www.regexpal.com/27540
         String regex = "<\\s*"+tagName+"[^>]*\\/?>";
         Pattern pattern = Pattern.compile(regex, Pattern.MULTILINE);
         Matcher matcher = pattern.matcher(this.html);
@@ -180,7 +210,7 @@ public class Page {
                 absoluteURL = this.origin + "/" + link;
 
         }else if(link != null && this.relativeProtocolLink(link)){
-            absoluteURL = this.protocolString + link;
+            absoluteURL = this.protocolString + link.substring(2);
         }else if(link != null && link.startsWith("/")){
             absoluteURL = RobotsParser.getOriginURL(this.origin) + link;
         }else{
@@ -213,7 +243,7 @@ public class Page {
 
 
         this.links = Utils.removeDuplicates(links);
-        this.filterLinks();
+//        this.filterLinks();
     }
 
     private void setImages() {
@@ -222,6 +252,9 @@ public class Page {
         for (int i = 0; i < images.size() ; i++) {
             String link = this.extractAttribute(images.get(i), "src");
             String placeholder = this.extractAttribute(images.get(i), "alt");
+            if(placeholder == null) {
+                placeholder = this.extractAttribute(images.get(i), "title");
+            }
             if(link == null || !this.isHTTPLink(link)) {
                 continue;
             }
@@ -233,7 +266,6 @@ public class Page {
 
 
         this.images = imageArrayList;
-//        this.filterImages();
     }
 
     public ArrayList<String> getLinks() {
@@ -259,6 +291,32 @@ public class Page {
                 this.images.remove(i);
                 i--;
             }
+        }
+    }
+
+
+    public static final class Header{
+        int type;
+        String content;
+        public Header(int type, String content) {
+            this.type = type;
+            this.content = content;
+        }
+
+        public int getType() {
+            return type;
+        }
+
+        public void setType(int type) {
+            this.type = type;
+        }
+
+        public String getContent() {
+            return content;
+        }
+
+        public void setContent(String content) {
+            this.content = content;
         }
     }
 }

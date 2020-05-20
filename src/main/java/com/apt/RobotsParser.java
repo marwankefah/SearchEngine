@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+//Should we support sitemap.xml?
+
 public class RobotsParser {
 
 
@@ -18,20 +20,34 @@ public class RobotsParser {
         this.initialize(this.getTXTFile(origin));
     }
 
-    //Since we don't have a specific "knows" crawler we will follow all (dis)allow rules.
+    //Since web masters don't know our user-agent, we'll follow the rules set for all crawlers.
+    //i.e. User-Agent: *
     private void initialize(String data) {
         String[] linesArr = data.split("\n");
         List<String> lines = Arrays.asList(linesArr);
-        for (String line: lines) {
-            line = line.toLowerCase();
-            if(line.startsWith("disallow")){
-                String[] disallowKV = line.split(":");
-                if(disallowKV.length != 2) continue;
-                disallows.add(disallowKV[1]);
-            }else if(line.startsWith("allow")){
-                String[] allowKV = line.split(":");
-                if(allowKV.length != 2) continue;
-                allows.add(allowKV[1]);
+        //It may seem as O(n^2) but it's O(n)...
+        for (int i = 0; i < lines.size(); i++) {
+            String UALine = lines.get(i).toLowerCase();
+            if(UALine.startsWith("user-agent") && UALine.contains("*")){
+                //Get the allow or disallow...
+                boolean foundARule = false;
+                for (int j = i+1; j < lines.size(); j++) {
+                    String line = lines.get(j).toLowerCase();
+                    //Checks if we've already found a rule to comply user-agent grouping...
+                    if(line.startsWith("user-agent") && foundARule) break;
+                    if(line.startsWith("allow")){
+                        String pattern = line.substring(line.indexOf(":")+1).trim();
+                        if(pattern.length() == 0) continue;
+                        allows.add(pattern);
+                        foundARule = true;
+                    }else if(line.startsWith("disallow")){
+                        String pattern = line.substring(line.indexOf(":")+1).trim();
+                        if(pattern.length() == 0) continue;
+                        disallows.add(pattern);
+                        foundARule = true;
+                    }
+                }
+                break;
             }
         }
     }
@@ -57,12 +73,19 @@ public class RobotsParser {
 
     public boolean canCrawlLink(String link){
         String filtered = link.replaceFirst(this.origin, "");
+        //if it passes any allow rule return true
+        //otherwise, check if passes any disallow rule. if so, return false.
+        //otherwise return true;
+        for (String allowRule: allows) {
+            if(RobotsParser.doesPatternMatches(filtered, allowRule)){
+                return true;
+            }
+        }
         for (String disallowRule: disallows) {
-            if(RobotsParser.doesPatternMatches(link, disallowRule)){
+            if(RobotsParser.doesPatternMatches(filtered, disallowRule)){
                 return false;
             }
         }
-        //Ask engineer Hussein what to do with the allow directives...
 
         return true;
     }

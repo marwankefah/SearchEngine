@@ -28,7 +28,7 @@ public class Counter {
                     countHolder.wait();
                 }
             }catch (Exception e){
-                e.printStackTrace();
+//                e.printStackTrace();
             }
         }
 
