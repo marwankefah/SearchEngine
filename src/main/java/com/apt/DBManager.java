@@ -265,7 +265,10 @@ public class DBManager {
 
     public MongoCursor<Document> getCrawledDocuments()
     {
-    	return this.processedPagesCollection.find(Filters.exists("_id")).iterator();
+    	return this.processedPagesCollection.find(Filters.and(Filters.exists("_id"),
+    			Filters.or(Filters.eq("Indexed",false)
+    			,Filters.not(Filters.exists("Indexed"))))
+    			).iterator();
 
     }
 
