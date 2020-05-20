@@ -1,16 +1,26 @@
 package com.apt;
 
 
+import java.io.FileNotFoundException;
+import java.util.Hashtable;
+
 import org.bson.types.ObjectId;
 
 import com.mongodb.client.MongoCursor; 
 public class Indexer {
-	public static void main(String[] args) {
+	public static void main(String[] args) throws FileNotFoundException {
 		// TODO Auto-generated method stub
 
+		// getting hash map for the stopWprds
+	 	Hashtable<String,Boolean> hashMap = new Hashtable<String, Boolean>(); 
+		hashMap=Utils.getStopWords("stopwords_en.txt");
+		System.out.println(hashMap);
+		// hashMap.get("Example")!= null O(1)
+		
 		MongoCursor<org.bson.Document> documentCursor =DBManager.getInstance().getCrawledDocuments();
 		if(documentCursor!=null)
 		{
+			
 			long documentCount=DBManager.getInstance().getDocumentsCount();
 				System.out.println(documentCount);
 				try {
