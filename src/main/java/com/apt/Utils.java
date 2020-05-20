@@ -70,15 +70,23 @@ public class Utils {
     }
     
     
-    public static Hashtable<String, Boolean> getStopWords(String fileName) throws FileNotFoundException
+    public static Hashtable<String, Boolean> getStopWords(String fileName)
     {
     	   File stopWordsFile = new File(fileName);
     	   Hashtable<String, Boolean> hashMap = new Hashtable<String, Boolean>(); 
-    	   Scanner scan = new Scanner(stopWordsFile); 
-		    while (scan.hasNextLine()) { 
-		      hashMap.put(scan.nextLine(),true);
-		  } 
-		    return hashMap;
+    	   Scanner scan;
+		try {
+			scan = new Scanner(stopWordsFile);
+			   while (scan.hasNextLine()) { 
+				      hashMap.put(scan.nextLine(),true);
+				  } 
+				    return hashMap;
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 
+		 
+		return null;
     }
     
 

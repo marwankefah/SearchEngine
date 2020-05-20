@@ -11,6 +11,7 @@ import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.Updates;
 import com.mongodb.client.result.UpdateResult;
+import com.thoughtworks.qdox.directorywalker.Filter;
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.*;
@@ -30,6 +31,7 @@ public class DBManager {
     private MongoCollection<Document> processedPagesCollection;
     private MongoCollection<Document> unprocessedLinksCollection;
     private MongoCollection<Document> imagesCollection;
+	private MongoCollection<Document> documentTokenCollection;
 
     private static DBManager instance;
 
@@ -38,11 +40,14 @@ public class DBManager {
         this.mongoClient = MongoClients.create();
         this.database = mongoClient.getDatabase("dex");
         this.invertedCollection = database.getCollection("inverted-index");
-        this.invertedCollection.createIndex(Indexes.ascending("token","Documents.refid"),new IndexOptions().unique(true));
-        this.invertedCollection.createIndex(Indexes.ascending("token"),new IndexOptions().unique(true));
+
+        this.invertedCollection.createIndex(Indexes.ascending("token"));
+        this.invertedCollection.createIndex(Indexes.ascending("token","DocumentId"),new IndexOptions().unique(true));
         this.processedPagesCollection = database.getCollection("processed-pages");
         this.unprocessedLinksCollection = database.getCollection("unprocessed-links");
         this.imagesCollection = database.getCollection("images");
+        
+      
     }
 
     public void addProcessedPage(Page page){
@@ -142,8 +147,6 @@ public class DBManager {
 				Filters.eq("Documents.refid",doc_id))) !=null)
 			{
 			
-    		
-    		
     			return true;
 			}
     	return false;
@@ -182,11 +185,11 @@ public class DBManager {
 		{
 			if(index=="title")
 			{
-				return doc.getInteger("tftitle", -2);
+				return doc.getInteger("tfTitle", -2);
 			}
 			else if(index=="body")
 			{
-				return doc.getInteger("tfbody", -2);
+				return doc.getInteger("tfBody", -2);
 			}			
 		}
 		return -1;
@@ -196,7 +199,7 @@ public class DBManager {
     public Document isInvertedPairExist(String word,ObjectId doc_id)
     {
 		MongoIterable<Document> cu=this.invertedCollection.find(Filters.and(Filters.eq("token", word),
-				Filters.eq("Documents.refid",doc_id)));
+				Filters.eq("refid",doc_id)));
     	
 		if(cu!=null)
 		{
@@ -210,28 +213,34 @@ public class DBManager {
     	
     }
     
-    public boolean insertInvertedWordIndex(String word,ObjectId doc_id,int titleCount,int bodyCount,boolean inTitle)
+    public boolean insertInvertedWordIndex(String word,ObjectId doc_id,int titleCount,int bodyCount,int inTitle)
     {
     	if(this.processedPagesCollection.find(Filters.eq("_id",doc_id)).limit(1)!= null)
     	{
-    		UpdateOptions x=new UpdateOptions();
-    		Document subDoc= new Document("refid",doc_id);
-    		if(inTitle){
-    		subDoc.append("tfTitle",1);
-    		subDoc.append("tfBody", 0);}
-    		else {
-    		subDoc.append("tfBody", 1);
-    		subDoc.append("tfTitle",0);;
-    		}
+  
+
     		Document Doc= new Document();
-    		
     		Doc.append("bodyCount",bodyCount);
     		Doc.append("titleCount",titleCount);
     	    BasicDBObject setNewFieldQuery = new BasicDBObject().append("$set", new BasicDBObject(Doc));
     		this.processedPagesCollection.updateOne(Filters.eq("_id",doc_id), setNewFieldQuery);
 
-    		
-    		return this.invertedCollection.updateOne(Filters.eq("token",word), Updates.push("Documents", subDoc)
+    		UpdateOptions x=new UpdateOptions();
+    		Document updateQuery= new Document();
+    		if(inTitle==1)
+    		{
+    			updateQuery.append("$inc", new BasicDBObject("tfTitle", 1));
+    			updateQuery.append("$setOnInsert", new BasicDBObject("tfBody", 1));
+    		}
+    		else
+    		{
+    			updateQuery.append("$inc", new BasicDBObject("tfBody",1));
+    			updateQuery.append("$setOnInsert", new BasicDBObject("tfTitle", 1));
+    		}
+
+    		return this.invertedCollection.updateOne(Filters.and(Filters.eq("token", word),
+    				Filters.eq("DocumentId",doc_id))
+    				,updateQuery
     				,new UpdateOptions().upsert(true)).wasAcknowledged();
     	}
     	else
@@ -245,7 +254,14 @@ public class DBManager {
     
 
 
-    
+    public void setIndexed(ObjectId doc_id,boolean isIndexed)
+    {
+    	
+     this.processedPagesCollection.findOneAndUpdate(Filters.eq("_id",doc_id)
+    		, new BasicDBObject("$set",new BasicDBObject("Indexed", isIndexed)));
+     return;
+    	
+    }
 
     public MongoCursor<Document> getCrawledDocuments()
     {
