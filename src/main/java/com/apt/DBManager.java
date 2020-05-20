@@ -138,6 +138,9 @@ public class DBManager {
 
         return links;
     }
+    public void dropUnprocessed() {
+        this.unprocessedLinksCollection.drop();
+    }
 
     public void updateInvertedWordIndex(String word,ObjectId doc_id,int tf,int idf,int tf_idf)
     {

@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-//Should we support sitemap.xml?
 
 public class RobotsParser {
 

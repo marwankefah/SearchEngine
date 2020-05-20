@@ -73,11 +73,17 @@ public class Crawler {
 //        Runtime.getRuntime().addShutdownHook(new Thread(new ShutdownHandler()));
 
         int numThreads = Integer.parseInt(Utils.getUserInput("Number of threads: "));
-
-        unprocessedLinks = DBManager.getInstance().getUnprocessedLinks();
-        if(unprocessedLinks.size() != 0){
-            links.clear();
+        boolean recrawl = false;
+        if(!recrawl){
+            unprocessedLinks = DBManager.getInstance().getUnprocessedLinks();
+            if(unprocessedLinks.size() != 0){
+                links.clear();
+            }
+        }else{
+            //Remove last time data....
+            DBManager.getInstance().dropUnprocessed();
         }
+
         DBManager.getInstance().saveUnprocessedLinks(links);
 
         threads = new ArrayList<>();
