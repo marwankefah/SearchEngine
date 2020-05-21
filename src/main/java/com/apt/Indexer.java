@@ -1,6 +1,7 @@
 package com.apt;
 
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -12,97 +13,164 @@ import org.bson.Document;
 import org.bson.types.ObjectId;
 import com.mongodb.client.MongoCursor;
 import edu.stanford.nlp.process.Stemmer;
+import edu.stanford.nlp.simple.Sentence;
+
+
 public class Indexer {
-	static Hashtable<String,Boolean> hashMap;
-	public static void main(String[] args) throws FileNotFoundException {
-		// TODO Auto-generated method stub
+	static Hashtable<String,Boolean> hashStopWords;
+	static Stemmer s=new Stemmer();
+	public Indexer()
+	{
 		// getting hash map for the stopWprds
-		hashMap= new Hashtable<String, Boolean>();
-		hashMap=Utils.getStopWords("stopwords_en.txt");
-		System.out.println(hashMap);
-		// hashMap.get("Example")!= null O(1)
+		hashStopWords= new Hashtable<String, Boolean>();
 		
+	}
+	public static void main(String[] args) throws FileNotFoundException, InterruptedException {
+		// TODO Auto-generated method stub
+		Indexer indexer=new Indexer();
+		hashStopWords=Utils.getStopWords("stopwords_en.txt");
 		
+
+		// get documents to index
 		MongoCursor<org.bson.Document> documentCursor =DBManager.getInstance().getCrawledDocuments();
+		
+		// loop to index
 		
 		if(documentCursor!=null)
 		{
-			
-			long documentCount=DBManager.getInstance().getDocumentsCount();
+			double documentCount=DBManager.getInstance().getDocumentsCount();
 				System.out.println(documentCount);
 				try {
 				    while (documentCursor.hasNext()) {
+				    	
 				    	Document document=documentCursor.next();
-				    	ObjectId doc_id=(ObjectId) document.get("_id");
-				    	List<String>  pageTitle=new LinkedList<String>(Arrays.asList(document.get("pageTitle").toString().split("[^a-zA-Z]+")));
-				    	
-				    	//TODO CHECK if you want to add wait for description
-				    	List<String> pageDescription=new LinkedList<String>(Arrays.asList(document.get("pageDescription").toString().split("[^a-zA-Z]+")));
-
-				    	List<String> pageContent=new LinkedList<String>(Arrays.asList(document.get("pageContent").toString().split("[^a-zA-Z]+")));
-				    	List<String> pageParagraphs=new LinkedList<String>(Arrays.asList(document.get("pageParagraphs").toString().split("[^a-zA-Z]+")));
-				    	
-				    	preprocessWordList(pageTitle);
-				    	preprocessWordList(pageContent);
-				    	preprocessWordList(pageDescription);
-				    	preprocessWordList(pageParagraphs);
-				    	int bodyCount=pageParagraphs.size()+pageContent.size();
-				    	int titleCount=pageTitle.size();
-				    	iterateThroughWords(pageTitle,doc_id,titleCount,bodyCount,"title",true);
-
-				    	iterateThroughWords(pageDescription,doc_id,titleCount,bodyCount,"title",false);
-
-				    	iterateThroughWords(pageContent,doc_id,titleCount,bodyCount,"body",false);
-
-				    	iterateThroughWords(pageParagraphs,doc_id,titleCount,bodyCount,"body",false);
-
-				       //DBManager.getInstance().updateInvertedWordIndex("mohamed",new ObjectId("5ec38efdcbe89e73c0ec8378"), 0, 0, 0);
-				     
-			
+				    	//TODO CHECK if you want to add weight for description
+				    	Hashtable<String, List<String>> hashDocArr = new Hashtable<String, List<String>>(4);
+				    	Hashtable<String, List<String>> hashLemmArr = new Hashtable<String, List<String>>(4);
+				    	hashDocArr=getDocumentText(getDocumentTextAsString(document));
+				    	preprocessDocumentText(hashDocArr,true);
+				    	processDocument(document,hashDocArr);
+				    	hashLemmArr=getDocumentText(getDocumentTextAsString(document));
+				    	preprocessDocumentText(hashLemmArr,false);
+				    	processDocument(document,hashLemmArr);
+				    	DBManager.getInstance().setIndexed((ObjectId)document.get("_id"),true);
 				    }
 				} finally {
+					// normalize tf and calulate tf_idf
+					DBManager.getInstance().normalizetfTitle();
 					documentCursor.close();
 				}
 			}
-		
+			
 		return;
 		
 	}
 	
-	public static void preprocessWordList(List<String> list)
+
+	public static Hashtable<String, List<String>> getDocumentText(Hashtable<String,String> docString)
+	{
+		Hashtable<String, List<String>> docText=new Hashtable<String, List<String>>(4);
+		docString.forEach((key,value) -> docText.put(key
+				,new LinkedList<String>(Arrays.asList(value.split("[^a-zA-Z]+")))));	
+    	return docText;
+	}
+	
+	public static void preprocessDocumentText(Hashtable<String, List<String>> docText,boolean stemOLem)
+	{
+		if(stemOLem==true)
+		{
+		docText.forEach((key,value) -> preprocessStemWordList(value));
+		}
+		else
+		{
+			docText.forEach((key,value) -> preprocessLemWordList(value));
+
+		}
+	}
+
+	public static Hashtable<String, List<String>> getDocumentLemmas(Hashtable<String,String> docString)
+	{
+		Hashtable<String, List<String>> docLemmas=new Hashtable<String, List<String>>(4);
+		docString.forEach((key,value) -> docLemmas.put(key,getLemmas(value)));	
+    	return docLemmas;
+		
+	}
+	
+	public static void processDocument(Document document,Hashtable<String, List<String>> hashDocArr)
+	{
+		ObjectId doc_id=(ObjectId) document.get("_id");
+    	double bodyCount=hashDocArr.get("pageParagraphs").size()
+    			+hashDocArr.get("pageContent").size();
+    	double titleCount=hashDocArr.get("pageTitle").size();
+    	iterateThroughWords(hashDocArr.get("pageTitle"),doc_id,titleCount,bodyCount,1);
+    	iterateThroughWords(hashDocArr.get("pageDescription"),doc_id,titleCount,bodyCount,0);
+    	iterateThroughWords(hashDocArr.get("pageContent"),doc_id,titleCount,bodyCount,0);
+    	iterateThroughWords(hashDocArr.get("pageParagraphs"),doc_id,titleCount,bodyCount, 0);	
+	
+	}
+	public static Hashtable<String,String> getDocumentTextAsString(Document document)
+	{
+		Hashtable<String,String> docString= new Hashtable<String,String>(4);
+		docString.put("pageTitle",document.get("pageTitle").toString());
+		docString.put("pageDescription",document.get("pageDescription").toString());
+		docString.put("pageContent",document.get("pageContent").toString());
+		docString.put("pageParagraphs",document.get("pageParagraphs").toString());
+		return docString;
+		
+	}
+	
+	
+	public static void preprocessLemWordList(List<String> list)
 	{
 		ListIterator <String> i = list.listIterator();
     	while (i.hasNext()) {
     		String temp=i.next();
     		temp=temp.toLowerCase();
+
     		i.set(temp);
-            if(temp.length()<2  || hashMap.get(temp)!= null)
+            if(temp.length()<2 || hashStopWords.get(temp)!= null)
             {
             	i.remove();
             }
-         }
-    	
+         } 	
 	}
 	
+    	public static void preprocessStemWordList(List<String> list)
+    	{
+    		ListIterator <String> i = list.listIterator();
+        	while (i.hasNext()) {
+        		String temp=i.next();
+                if(temp.length()<2 || hashStopWords.get(temp)!= null)
+                {
+                	i.remove();
+                }
+                else
+                {
+            		temp=temp.toLowerCase();
+            		String tstem=s.stem(temp);
+            		i.set(tstem);
+                }
+             } 	
+    	}	
+	public static List<String> getLemmas(String document)
+	{
+		Sentence s=new Sentence(document);
+		return s.lemmas();		
+	}
+	
+	
 	public static void iterateThroughWords(List<String> list,ObjectId doc_id,
-				int titleCount,int bodyCount,String tf_index,boolean inTitle)
+				double titleCount,double bodyCount,int inTitle)
 	{
 		ListIterator <String> i = list.listIterator();
     	while (i.hasNext()) {
   
     		String temp=i.next();
-    			if(DBManager.getInstance().isInvertedPairExist(temp, doc_id)!=null)
-    			{
-    				DBManager.getInstance().incrementTermFrequency(temp,doc_id,tf_index);
-    			}
-    			else
-    			{
-	    			DBManager.getInstance().insertInvertedWordIndex(temp, doc_id, titleCount,bodyCount, inTitle);
-    			}	
+    		DBManager.getInstance().insertInvertedWordIndex(temp, doc_id, titleCount,bodyCount, inTitle);
+
     	}	
     }
 		
-	
 	
 
 }
