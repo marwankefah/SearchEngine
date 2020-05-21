@@ -27,7 +27,6 @@ public class Indexer {
 	}
 	public static void main(String[] args) throws FileNotFoundException, InterruptedException {
 		// TODO Auto-generated method stub
-
 		Indexer indexer=new Indexer();
 		hashStopWords=Utils.getStopWords("stopwords_en.txt");
 		
@@ -39,7 +38,7 @@ public class Indexer {
 		
 		if(documentCursor!=null)
 		{
-			long documentCount=DBManager.getInstance().getDocumentsCount();
+			double documentCount=DBManager.getInstance().getDocumentsCount();
 				System.out.println(documentCount);
 				try {
 				    while (documentCursor.hasNext()) {
@@ -51,17 +50,18 @@ public class Indexer {
 				    	hashDocArr=getDocumentText(getDocumentTextAsString(document));
 				    	preprocessDocumentText(hashDocArr,true);
 				    	processDocument(document,hashDocArr);
-				
 				    	hashLemmArr=getDocumentText(getDocumentTextAsString(document));
 				    	preprocessDocumentText(hashLemmArr,false);
 				    	processDocument(document,hashLemmArr);
 				    	DBManager.getInstance().setIndexed((ObjectId)document.get("_id"),true);
 				    }
 				} finally {
+					// normalize tf and calulate tf_idf
+					DBManager.getInstance().normalizetfTitle();
 					documentCursor.close();
 				}
 			}
-		
+			
 		return;
 		
 	}
@@ -99,9 +99,9 @@ public class Indexer {
 	public static void processDocument(Document document,Hashtable<String, List<String>> hashDocArr)
 	{
 		ObjectId doc_id=(ObjectId) document.get("_id");
-    	int bodyCount=hashDocArr.get("pageParagraphs").size()
+    	double bodyCount=hashDocArr.get("pageParagraphs").size()
     			+hashDocArr.get("pageContent").size();
-    	int titleCount=hashDocArr.get("pageTitle").size();
+    	double titleCount=hashDocArr.get("pageTitle").size();
     	iterateThroughWords(hashDocArr.get("pageTitle"),doc_id,titleCount,bodyCount,1);
     	iterateThroughWords(hashDocArr.get("pageDescription"),doc_id,titleCount,bodyCount,0);
     	iterateThroughWords(hashDocArr.get("pageContent"),doc_id,titleCount,bodyCount,0);
@@ -160,7 +160,7 @@ public class Indexer {
 	
 	
 	public static void iterateThroughWords(List<String> list,ObjectId doc_id,
-				int titleCount,int bodyCount,int inTitle)
+				double titleCount,double bodyCount,int inTitle)
 	{
 		ListIterator <String> i = list.listIterator();
     	while (i.hasNext()) {
