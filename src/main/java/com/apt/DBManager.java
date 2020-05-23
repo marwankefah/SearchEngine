@@ -36,6 +36,7 @@ public class DBManager {
     private MongoCollection<Document> unprocessedLinksCollection;
     private MongoCollection<Document> imagesCollection;
 	private MongoCollection<Document> documentTokenCollection;
+	private MongoCollection<Document> invertedImgIndexCollection;
 
     private static DBManager instance;
 
@@ -49,7 +50,11 @@ public class DBManager {
         this.processedPagesCollection = database.getCollection("processed-pages");
         this.unprocessedLinksCollection = database.getCollection("unprocessed-links");
         this.imagesCollection = database.getCollection("images");
-      
+       
+        this.invertedImgIndexCollection=database.getCollection("inverted-imgs");
+        this.invertedImgIndexCollection.createIndex(Indexes.ascending("token"));
+        this.invertedImgIndexCollection.createIndex(Indexes.ascending("token","imageId"),new IndexOptions().unique(true));
+
     }
 
     public void addProcessedPage(Page page){
@@ -89,6 +94,7 @@ public class DBManager {
                 Document imageDocument = new Document("_id", image.getSrc());
                 imageDocument.append("description", image.getPlaceholder());
                 imageDocument.append("src", image.getSrc());
+                imageDocument.append("descriptionCount",-0.2);
                 this.imagesCollection.insertOne(imageDocument);
             }catch (Exception e){
                 //Catch any exception that may happen from _id duplication.
@@ -176,6 +182,38 @@ public class DBManager {
     	
     }
     
+ public boolean insertInvertedWordIndexImages(String word,String doc_id,double descriptionCount)
+    {
+    	if(this.imagesCollection.find(Filters.eq("_id",doc_id)).limit(1)!= null)
+    	{
+  
+
+    		Document Doc= new Document();
+    		Doc.append("descriptionCount",descriptionCount);
+    	    BasicDBObject setNewFieldQuery = new BasicDBObject().append("$set", new BasicDBObject(Doc));
+    		
+    	    this.imagesCollection.updateOne(Filters.eq("_id",doc_id), setNewFieldQuery);
+
+    		UpdateOptions x=new UpdateOptions();
+    		Document updateQuery= new Document();
+
+    		updateQuery.append("$inc", new BasicDBObject("tfDescription", 1.0));
+    		updateQuery.append("$setOnInsert", new BasicDBObject("tfIdf",0.0)
+    				.append("normalized", false));
+
+    		return this.invertedImgIndexCollection.updateOne(Filters.and(Filters.eq("token", word),
+    				Filters.eq("imageId",doc_id))
+    				,updateQuery
+    				,new UpdateOptions().upsert(true)).wasAcknowledged();
+    	}
+    	else
+    	{
+    		System.out.println("Error in DB Manager Funtion images UpdateInvertedWordindex"
+    				+" invalid doc_id");
+    		return false;
+    	}
+    }
+    
     public boolean insertInvertedWordIndex(String word,ObjectId doc_id,double titleCount,double bodyCount,int inTitle)
     {
     	if(this.processedPagesCollection.find(Filters.eq("_id",doc_id)).limit(1)!= null)
@@ -218,9 +256,7 @@ public class DBManager {
     				+" invalid doc_id");
     		return false;
     	}
-    }
-    
-    
+    }    
 
 
     public void setIndexed(ObjectId doc_id,boolean isIndexed)
@@ -231,17 +267,26 @@ public class DBManager {
      return;
     	
     }
+    public void setIndexedImgs(String doc_id,boolean isIndexed)
+    {
+    	
+     this.imagesCollection.findOneAndUpdate(Filters.eq("_id",doc_id)
+    		, new BasicDBObject("$set",new BasicDBObject("Indexed", isIndexed)));
+     return;
+    	
+    }
 
- 
 	public void normalizetfTitle()
     {
 
-
+		// TODO need optimization to get only non normalized documents
 		AggregateIterable<Document> documents
         = this.invertedCollection.aggregate(
         Arrays.asList(
         	
         		Aggregates.lookup("processed-pages", "DocumentId", "_id","documentInfo")
+        		,
+        		Aggregates.match(Filters.eq("normalized",false))
       
         ));
 		
@@ -283,10 +328,25 @@ public class DBManager {
 
     }
 
+    public MongoCursor<Document> getCrawledImages()
+    {
+    	return this.imagesCollection.find(Filters.and(Filters.exists("_id"),
+    			Filters.or(Filters.eq("Indexed",false)
+    			,Filters.not(Filters.exists("Indexed"))))
+    			).iterator();
+
+    }
     public double getDocumentsCount()
     {
 
     	return this.processedPagesCollection.estimatedDocumentCount();
+
+    }
+
+    public double getImagesCount()
+    {
+
+    	return this.imagesCollection.estimatedDocumentCount();
 
     }
 
@@ -297,6 +357,57 @@ public class DBManager {
         return instance;
     }
 
+	public void normalizetfImages() {
+		// TODO Auto-generated method stub
+
+		// TODO need optimization to get only non normalized documents
+		AggregateIterable<Document> documents
+        = this.invertedImgIndexCollection.aggregate(
+        Arrays.asList(
+        	
+        		Aggregates.lookup("images", "imageId", "_id","documentInfo"),
+        		Aggregates.match(Filters.eq("normalized",false))
+        ));
+		
+		double totalNumberOfDocs=this.getImagesCount();
+		for(Document a: documents)
+		{	
+			// TODO need optimization
+			ArrayList<Document> aggregateArray = ((ArrayList<Document>)a.get("documentInfo"));
+	if(aggregateArray.size()>0)
+	{
+			 Document checkDescription = ((ArrayList<Document>)a.get("documentInfo")).get(0);
+			 if(checkDescription.get("description")!=null)
+			{
+			
+			 double descriptionCount=(double) checkDescription.get("descriptionCount");
+
+			String toknen=a.get("token").toString();
+			double normalizedTfTitle=(double)a.get("tfDescription")/descriptionCount;
+			double df= this.invertedImgIndexCollection.countDocuments(Filters.eq("token",toknen));
+			double tf_idf=Math.log10(totalNumberOfDocs/(df+1))*(normalizedTfTitle);
+			
+			BasicDBObject carrier = new BasicDBObject();
+			BasicDBObject set = new BasicDBObject("$set", carrier);
+			carrier.put("tfIdf",tf_idf);
+			carrier.put("normalized",true); 
+			carrier.put("tfTitle",normalizedTfTitle);
+
+			String doc_id=(String)a.get("imageId");
+			BasicDBObject query = new BasicDBObject();
+			query.put("token",toknen);
+			query.put("imageId",doc_id);
+			query.put("normalized",false);
+			this.invertedImgIndexCollection.updateOne(query, set);
+			}
+		}
+	}
+		
+
+		return;
+		
+	}
+	
     //This is deprecated, however I can't find another way
     // to close the connection to DB upon exiting...
     @Override
