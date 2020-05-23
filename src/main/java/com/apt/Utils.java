@@ -83,10 +83,10 @@ public class Utils {
 				    return hashMap;
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+            return new Hashtable<String, Boolean>();
+//			e.printStackTrace();
 		} 
 		 
-		return null;
     }
     
 

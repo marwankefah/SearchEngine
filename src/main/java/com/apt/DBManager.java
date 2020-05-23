@@ -1,41 +1,35 @@
 package com.apt;
 
 import org.bson.Document;
-import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Indexes;
-import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.IndexOptions;
 
 import com.mongodb.client.model.UpdateOptions;
-import com.mongodb.client.model.Updates;
 import com.mongodb.client.result.UpdateResult;
-import com.thoughtworks.qdox.directorywalker.Filter;
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.*;
-import org.bson.Document;
-import org.bson.types.ObjectId;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Consumer;
+
 
 public class DBManager {
 
 
     private MongoClient mongoClient;
     private MongoDatabase database;
-    private MongoCollection<Document> collection;
+//    private MongoCollection<Document> collection;
     private MongoCollection<Document> invertedCollection;
     private MongoCollection<Document> processedPagesCollection;
     private MongoCollection<Document> unprocessedLinksCollection;
     private MongoCollection<Document> imagesCollection;
-	private MongoCollection<Document> documentTokenCollection;
+//	private MongoCollection<Document> documentTokenCollection;
 	private MongoCollection<Document> invertedImgIndexCollection;
 
     private static DBManager instance;
@@ -57,7 +51,13 @@ public class DBManager {
 
     }
 
+
+    public Document getProcessedPage(ObjectId oId){
+        return this.processedPagesCollection.find(Filters.eq("_id", oId)).first();
+    }
+
     public void addProcessedPage(Page page){
+        if(page.getInvalid()) return;
         try{
             Document processedPage = new Document("_id", new ObjectId());
             processedPage.append("pageLink", page.getOrigin());
@@ -66,12 +66,18 @@ public class DBManager {
             processedPage.append("pageDescription", page.getPageDescription() == null ? "" : page.getPageDescription());
             processedPage.append("bodyCount", -0.2);
             processedPage.append("titleCount",-0.2);
-            
+
             BasicDBList paragraphList = new BasicDBList();
             for (String paragraph: page.getParagraphs()) {
                 paragraphList.add(paragraph);
             }
             processedPage.append("pageParagraphs", paragraphList);
+            BasicDBList linksList = new BasicDBList();
+            for (String link: page.getLinks()) {
+                linksList.add(link);
+            }
+            processedPage.append("pageLinks", linksList);
+
             BasicDBList headersList = new BasicDBList();
             for (Page.Header header: page.getHeaders()) {
                 BasicDBObject headerObject = new BasicDBObject();
@@ -79,7 +85,7 @@ public class DBManager {
                 headerObject.append("content", header.getContent());
                 headersList.add(headerObject);
             }
-
+            processedPage.append("pageHeaders", headersList);
             this.processedPagesCollection.insertOne(processedPage);
             saveImages(page.getImages());
         }catch (Exception e){
@@ -92,7 +98,11 @@ public class DBManager {
         for (Image image: images) {
             try {
                 Document imageDocument = new Document("_id", image.getSrc());
-                imageDocument.append("description", image.getPlaceholder());
+                String alt = image.getAlt();
+                if(alt == null || alt.trim().length() == 0){
+                    continue;
+                }
+                imageDocument.append("description", alt);
                 imageDocument.append("src", image.getSrc());
                 imageDocument.append("descriptionCount",-0.2);
                 this.imagesCollection.insertOne(imageDocument);
@@ -104,6 +114,19 @@ public class DBManager {
             }
         }
 
+    }
+
+    public MongoIterable<Document> getTokenEntries(String token){
+        return this.invertedCollection.find(Filters.eq("token", token));
+    }
+
+    public MongoIterable<Document> getPagesPointingTo(String link) {
+        String[] values = {link};
+        return this.processedPagesCollection.find(
+                Filters.in(
+                        "pageLinks",
+                        Arrays.asList(values)
+                ));
     }
 
     public void saveUnprocessedLinks(List<String> links){
@@ -149,21 +172,72 @@ public class DBManager {
 
         return links;
     }
-   
+//    public void dropUnprocessed() {
+//        this.unprocessedLinksCollection.drop();
+//    }
+
     public Boolean updateIdfWordIndex(String word,ObjectId doc_id,int idf)
     {
-    	if(this.invertedCollection.find(Filters.and(Filters.eq("token", word),
-				Filters.eq("Documents.refid",doc_id))) !=null)
-			{
-			
-    			return true;
-			}
-    	return false;
+        if(this.invertedCollection.find(Filters.and(Filters.eq("token", word),
+                Filters.eq("Documents.refid",doc_id))) !=null)
+        {
+
+            return true;
+        }
+        return false;
+
+    }
+
+    public void dropDB(){
+        this.processedPagesCollection.drop();
+        this.invertedCollection.drop();
+        this.unprocessedLinksCollection.drop();
+        this.imagesCollection.drop();
+    }
+
+    public boolean incrementTermFrequency(String word,ObjectId doc_id,String index)
+    {
+    	UpdateResult x=null;
+    	if(index=="title")
+    	{
+		 x=this.invertedCollection.updateOne(Filters.and(Filters.eq("token", word),
+				Filters.eq("Documents.refid",doc_id))
+				,new BasicDBObject("$inc", new BasicDBObject("Documents.$.tfTitle", 1)));  
+    	}
+    	else if(index=="body")
+    	{
+    		
+   		 x=this.invertedCollection.updateOne(Filters.and(Filters.eq("token", word),
+ 				Filters.eq("Documents.refid",doc_id))
+ 				,new BasicDBObject("$inc", new BasicDBObject("Documents.$.tfBody", 1))); 
+    		
+    	}
+    	else
+    	{
+    		return false;
+    	}
+    	
+    	return x.wasAcknowledged();
     	
     }
-   
     
+    public int getTermFrequency(String word,ObjectId doc_id,String index)
+    {
+		Document doc= this.isInvertedPairExist(word, doc_id);
+		if(doc!=null)
+		{
+			if(index=="title")
+			{
+				return doc.getInteger("tftitle", -2);
+			}
+			else if(index=="body")
+			{
+				return doc.getInteger("tfbody", -2);
+			}
+		}
+		return -1;
 
+   }
     
     public Document isInvertedPairExist(String word,ObjectId doc_id)
     {
@@ -218,7 +292,7 @@ public class DBManager {
     {
     	if(this.processedPagesCollection.find(Filters.eq("_id",doc_id)).limit(1)!= null)
     	{
-  
+
 
     		Document Doc= new Document();
     		Doc.append("bodyCount",bodyCount);
@@ -232,14 +306,14 @@ public class DBManager {
 
 			if(inTitle==1)
     		{
-			
+
     			updateQuery.append("$inc", new BasicDBObject("tfTitle", 1.0));
     			updateQuery.append("$setOnInsert", new BasicDBObject("tfBody", 1.0)
     					.append("tfIdf",0.0).append("normalized", false));
     		}
     		else
     		{
-    			
+
     			updateQuery.append("$inc", new BasicDBObject("tfBody",1.0));
     			updateQuery.append("$setOnInsert", new BasicDBObject("tfTitle", 1.0)
     					.append("tfIdf",0.0).append("normalized", false));
@@ -261,11 +335,11 @@ public class DBManager {
 
     public void setIndexed(ObjectId doc_id,boolean isIndexed)
     {
-    	
+
      this.processedPagesCollection.findOneAndUpdate(Filters.eq("_id",doc_id)
     		, new BasicDBObject("$set",new BasicDBObject("Indexed", isIndexed)));
      return;
-    	
+
     }
     public void setIndexedImgs(String doc_id,boolean isIndexed)
     {
@@ -276,6 +350,7 @@ public class DBManager {
     	
     }
 
+
 	public void normalizetfTitle()
     {
 
@@ -283,13 +358,13 @@ public class DBManager {
 		AggregateIterable<Document> documents
         = this.invertedCollection.aggregate(
         Arrays.asList(
-        	
+
         		Aggregates.lookup("processed-pages", "DocumentId", "_id","documentInfo")
         		,
         		Aggregates.match(Filters.eq("normalized",false))
       
         ));
-		
+
 		double totalNumberOfDocs=this.getDocumentsCount();
 		for(Document a: documents)
 		{
@@ -300,22 +375,22 @@ public class DBManager {
 			double normalizedTfTitle=(double)a.get("tfTitle")/titleCount;
 			double df= this.invertedCollection.countDocuments(Filters.eq("token",toknen));
 			double tf_idf=Math.log10(totalNumberOfDocs/(df+1))*(normalizedtfBody*0.3+ normalizedTfTitle*0.6);
-			
+
 			BasicDBObject carrier = new BasicDBObject();
 			BasicDBObject set = new BasicDBObject("$set", carrier);
 			carrier.put("tfIdf",tf_idf);
-			carrier.put("normalized",true); 
+			carrier.put("normalized",true);
 			carrier.put("tfTitle",normalizedTfTitle);
 			carrier.put("tfBody",normalizedtfBody);
 			ObjectId doc_id=a.getObjectId("DocumentId");
 			BasicDBObject query = new BasicDBObject();
 			query.put("token",toknen);
-		
+
 			query.put("DocumentId",doc_id);
 			query.put("normalized",false);
 			this.invertedCollection.updateOne(query, set);
 		}
-		
+
 
 		return;
     }

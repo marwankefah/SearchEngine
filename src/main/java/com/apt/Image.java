@@ -2,7 +2,7 @@ package com.apt;
 
 public class Image {
     String src;
-    String placeholder;
+    String alt;
 
     public String getSrc() {
         return src;
@@ -12,11 +12,11 @@ public class Image {
         this.src = src;
     }
 
-    public String getPlaceholder() {
-        return placeholder;
+    public String getAlt() {
+        return alt;
     }
 
-    public void setPlaceholder(String placeholder) {
-        this.placeholder = placeholder;
+    public void setAlt(String alt) {
+        this.alt = alt;
     }
 }
