@@ -17,25 +17,23 @@ import edu.stanford.nlp.simple.Sentence;
 
 
 public class Indexer {
-	static Hashtable<String,Boolean> hashStopWords;
+	static Hashtable<String,Boolean> hashStopWords = Utils.getStopWords("E:\\Crawler\\stopwords_en.txt");;
 	static Stemmer s=new Stemmer();
 	public Indexer()
 	{
 		// getting hash map for the stopWprds
-		hashStopWords= new Hashtable<String, Boolean>();
-		
+
 	}
 	public static void main(String[] args) throws FileNotFoundException, InterruptedException {
 		// TODO Auto-generated method stub
 		Indexer indexer=new Indexer();
-		hashStopWords=Utils.getStopWords("stopwords_en.txt");
-		
+
 
 		// get documents to index
 		MongoCursor<org.bson.Document> documentCursor =DBManager.getInstance().getCrawledDocuments();
-		
 		// loop to index
 		
+		//Should use cursor.tryNext() instead
 		if(documentCursor!=null)
 		{
 			double documentCount=DBManager.getInstance().getDocumentsCount();
@@ -140,7 +138,8 @@ public class Indexer {
     		ListIterator <String> i = list.listIterator();
         	while (i.hasNext()) {
         		String temp=i.next();
-                if(temp.length()<2 || hashStopWords.get(temp)!= null)
+        		if(temp == null) continue;
+                if(temp.length()<2 || hashStopWords.contains(temp))
                 {
                 	i.remove();
                 }

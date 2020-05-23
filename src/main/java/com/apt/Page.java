@@ -1,8 +1,7 @@
 package com.apt;
 
 
-import javax.swing.text.html.CSS;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -39,25 +38,45 @@ public class Page {
     String pageDescription = "";
     ArrayList<String> paragraphs = new ArrayList<>();
     ArrayList<Header> headers = new ArrayList<>();
-    //Could add keywords & author meta tags but they're not that important...
+    Boolean isInvalid = false;
+
+    public Boolean getInvalid() {
+        return isInvalid;
+    }
+//Could add keywords & author meta tags but they're not that important...
 
     public Page(String html, String link) {
-        this.html = html;
+        String CSSRegex = "<\\s*style[^>]*>(.*?)<\\s*/\\s*style>";
+        String JSRegex = "<\\s*script[^>]*>(.*?)<\\s*/\\s*script>";
+
+        this.html = html.replaceAll(CSSRegex, "");
+        this.html = this.html.replaceAll(JSRegex, "");
+
         if(link.startsWith("https://")){
             this.protocolString = "https://";
         }else if(link.startsWith("http://")){
             this.protocolString = "http://";
         }else{
-            this.html = "";
+            this.isInvalid = true;
+//            this.html = "";
+            return;
         }
         if(link.endsWith("/")){
             link = link.substring(0, link.length() - 1);
         }
         this.origin = link;
-        this.setLinks();
-        this.setImages();
         this.setPageTitle();
         this.setPageDescription();
+        ArrayList<String> bodyTags = extractTags("body");
+        if(bodyTags.size() == 0){
+            this.isInvalid = true;
+            return;
+        }
+        this.html = bodyTags.get(bodyTags.size() - 1);
+        this.pageContent = Page.extractText(this.html);
+        this.pageContent = this.pageContent.trim();
+        this.setLinks();
+        this.setImages();
         this.setPageContent();
     }
 
@@ -94,25 +113,27 @@ public class Page {
         for (String pTag: pTags) {
             this.paragraphs.add(Page.extractText(pTag));
         }
+        //Should filter the content....
+        HashMap<String, String> headersHashMap = new HashMap<>();
         for (int i = 1; i <= 6; i++) {
             ArrayList<String> hTags = this.extractTags("h" + i);
             for (String hTag: hTags) {
                 String text = Page.extractText(hTag);
-                Header header = new Header(i, text);
-                this.headers.add(header);
+                if(text.length() == 0) continue;
+                headersHashMap.put("h"+i+text, text);
             }
         }
-        //If the developer didn't use p tags, fallback to all text in the page
-        ArrayList<String> bodyTags = this.extractTags("body");
-        if(bodyTags.size() == 0){
-            return;
-        }else{
-            this.pageContent = "";
-            for (String bodyTag: bodyTags) {
-                this.pageContent += " " + Page.extractText(bodyTag);
-            }
-            this.pageContent = this.pageContent.trim();
+        Set<String> set = headersHashMap.keySet();
+        Iterator iterator = set.iterator();
+
+        while(iterator.hasNext()){
+            String key = (String) iterator.next();
+            String value = headersHashMap.get(key);
+            char type = key.charAt(1);
+            Header header = new Header(type - '0', value);
+            this.headers.add(header);
         }
+
 
     }
 
@@ -130,12 +151,7 @@ public class Page {
 
     private static String extractText(String html) {
         String tagRegex = "<[^>]+>";
-        String CSSRegex = "<\\s*style[^>]*>(.*?)<\\s*/\\s*style>";
-        String JSRegex = "<\\s*script[^>]*>(.*?)<\\s*/\\s*script>";
-
-        String text = html.replaceAll(CSSRegex, "");
-        text = text.replaceAll(JSRegex, "");
-        text = text.replaceAll(tagRegex, " ");
+        String text = html.replaceAll(tagRegex, " ");
         text = text.replaceAll("\n", " ").trim();
         text = text.replaceAll("&amp;", "&");
         text = text.replaceAll("&nbsp;", " ");
@@ -225,7 +241,7 @@ public class Page {
     }
     private void setLinks() {
         ArrayList<String> links = this.extractTags("a");
-        RobotsParser parser = new RobotsParser(this.origin);
+        RobotsParser parser = RobotsParser.getParser(this.origin);
         for (int i = 0; i < links.size() ; i++) {
             String link = this.extractAttribute(links.get(i), "href");
             if(link == null || !this.isHTTPLink(link)) {
@@ -259,7 +275,7 @@ public class Page {
                 continue;
             }
             Image img = new Image();
-            img.setPlaceholder(placeholder);
+            img.setAlt(placeholder);
             img.setSrc(this.absoluteURL(link));
             imageArrayList.add(img);
         }

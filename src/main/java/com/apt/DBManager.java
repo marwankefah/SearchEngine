@@ -1,41 +1,35 @@
 package com.apt;
 
 import org.bson.Document;
-import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Indexes;
-import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.IndexOptions;
 
 import com.mongodb.client.model.UpdateOptions;
-import com.mongodb.client.model.Updates;
 import com.mongodb.client.result.UpdateResult;
-import com.thoughtworks.qdox.directorywalker.Filter;
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.*;
-import org.bson.Document;
-import org.bson.types.ObjectId;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Consumer;
+
 
 public class DBManager {
 
 
     private MongoClient mongoClient;
     private MongoDatabase database;
-    private MongoCollection<Document> collection;
+//    private MongoCollection<Document> collection;
     private MongoCollection<Document> invertedCollection;
     private MongoCollection<Document> processedPagesCollection;
     private MongoCollection<Document> unprocessedLinksCollection;
     private MongoCollection<Document> imagesCollection;
-	private MongoCollection<Document> documentTokenCollection;
+//	private MongoCollection<Document> documentTokenCollection;
 
     private static DBManager instance;
 
@@ -52,7 +46,13 @@ public class DBManager {
 
     }
 
+
+    public Document getProcessedPage(ObjectId oId){
+        return this.processedPagesCollection.find(Filters.eq("_id", oId)).first();
+    }
+
     public void addProcessedPage(Page page){
+        if(page.getInvalid()) return;
         try{
             Document processedPage = new Document("_id", new ObjectId());
             processedPage.append("pageLink", page.getOrigin());
@@ -67,6 +67,12 @@ public class DBManager {
                 paragraphList.add(paragraph);
             }
             processedPage.append("pageParagraphs", paragraphList);
+            BasicDBList linksList = new BasicDBList();
+            for (String link: page.getLinks()) {
+                linksList.add(link);
+            }
+            processedPage.append("pageLinks", linksList);
+
             BasicDBList headersList = new BasicDBList();
             for (Page.Header header: page.getHeaders()) {
                 BasicDBObject headerObject = new BasicDBObject();
@@ -74,7 +80,7 @@ public class DBManager {
                 headerObject.append("content", header.getContent());
                 headersList.add(headerObject);
             }
-
+            processedPage.append("pageHeaders", headersList);
             this.processedPagesCollection.insertOne(processedPage);
             saveImages(page.getImages());
         }catch (Exception e){
@@ -87,7 +93,11 @@ public class DBManager {
         for (Image image: images) {
             try {
                 Document imageDocument = new Document("_id", image.getSrc());
-                imageDocument.append("description", image.getPlaceholder());
+                String alt = image.getAlt();
+                if(alt == null || alt.trim().length() == 0){
+                    continue;
+                }
+                imageDocument.append("description", alt);
                 imageDocument.append("src", image.getSrc());
                 this.imagesCollection.insertOne(imageDocument);
             }catch (Exception e){
@@ -98,6 +108,19 @@ public class DBManager {
             }
         }
 
+    }
+
+    public MongoIterable<Document> getTokenEntries(String token){
+        return this.invertedCollection.find(Filters.eq("token", token));
+    }
+
+    public MongoIterable<Document> getPagesPointingTo(String link) {
+        String[] values = {link};
+        return this.processedPagesCollection.find(
+                Filters.in(
+                        "pageLinks",
+                        Arrays.asList(values)
+                ));
     }
 
     public void saveUnprocessedLinks(List<String> links){
@@ -143,9 +166,9 @@ public class DBManager {
 
         return links;
     }
-    public void dropUnprocessed() {
-        this.unprocessedLinksCollection.drop();
-    }
+//    public void dropUnprocessed() {
+//        this.unprocessedLinksCollection.drop();
+//    }
 
     public Boolean updateIdfWordIndex(String word,ObjectId doc_id,int idf)
     {
@@ -157,6 +180,13 @@ public class DBManager {
         }
         return false;
 
+    }
+
+    public void dropDB(){
+        this.processedPagesCollection.drop();
+        this.invertedCollection.drop();
+        this.unprocessedLinksCollection.drop();
+        this.imagesCollection.drop();
     }
 
     public boolean incrementTermFrequency(String word,ObjectId doc_id,String index)

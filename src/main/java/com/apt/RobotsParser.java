@@ -2,6 +2,7 @@ package com.apt;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -14,9 +15,20 @@ public class RobotsParser {
     private ArrayList<String> allows = new ArrayList<>();
     String origin;
 
-    public RobotsParser(String link) {
+    static HashMap<String, RobotsParser> parsers = new HashMap<>();
+
+    private RobotsParser(String link) {
         this.origin = RobotsParser.getOriginURL(link);
         this.initialize(this.getTXTFile(origin));
+    }
+
+    public static RobotsParser getParser(String link){
+        String origin = RobotsParser.getOriginURL(link);
+        RobotsParser parser = parsers.get(origin);
+        if(parser != null) return parser;
+        parser = new RobotsParser(link);
+        parsers.put(origin, parser);
+        return parser;
     }
 
     //Since web masters don't know our user-agent, we'll follow the rules set for all crawlers.
