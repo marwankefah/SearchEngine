@@ -17,56 +17,127 @@ import edu.stanford.nlp.simple.Sentence;
 
 
 public class Indexer {
-	static Hashtable<String,Boolean> hashStopWords;
+	static Hashtable<String,Boolean> hashStopWords=Utils.getStopWords("stopwords_en.txt");;
 	static Stemmer s=new Stemmer();
-	public Indexer()
+	static String[] docFieldsToIndex= {"pageTitle","pageDescription","pageContent","pageParagraphs"};
+	static String[] ImgsFieldToIndex= {"description"};
+   public Indexer()
 	{
-		// getting hash map for the stopWprds
-		hashStopWords= new Hashtable<String, Boolean>();
+
 		
 	}
 	public static void main(String[] args) throws FileNotFoundException, InterruptedException {
 		// TODO Auto-generated method stub
-		Indexer indexer=new Indexer();
-		hashStopWords=Utils.getStopWords("stopwords_en.txt");
-		
 
+       int imgODoc = Integer.parseInt(Utils.getUserInput("Enter 0 to index documents, 1 for images: "));
+		if(imgODoc==0)
+		{
+		       indexDocuments(docFieldsToIndex);
+				DBManager.getInstance().normalizetfTitle();
+			
+		}
+		else if(imgODoc==1)
+		{
+			// normalize tf and calculate tf_idf
+			indexImages(ImgsFieldToIndex);
+			DBManager.getInstance().normalizetfImages();
+			
+			
+		}
+		else
+		{
+			System.out.println("INPUT ERROR");
+			
+		}
+	
+		return;
+	}
+
+	
+public static void indexImages(String[] fieldtoIndex)
+	{
 		// get documents to index
-		MongoCursor<org.bson.Document> documentCursor =DBManager.getInstance().getCrawledDocuments();
+		MongoCursor<org.bson.Document> imagesCursor =DBManager.getInstance().getCrawledImages();
 		
 		// loop to index
 		
-		if(documentCursor!=null)
+		if(imagesCursor!=null)
 		{
-			double documentCount=DBManager.getInstance().getDocumentsCount();
-				System.out.println(documentCount);
+			double imagesCount=DBManager.getInstance().getImagesCount();
+				System.out.println(imagesCursor);
 				try {
-				    while (documentCursor.hasNext()) {
+				    while (imagesCursor.hasNext()) {
 				    	
-				    	Document document=documentCursor.next();
+				    	Document document=imagesCursor.next();
+				    	if(document.get("description")!=null)
+				    	{
 				    	//TODO CHECK if you want to add weight for description
-				    	Hashtable<String, List<String>> hashDocArr = new Hashtable<String, List<String>>(4);
-				    	Hashtable<String, List<String>> hashLemmArr = new Hashtable<String, List<String>>(4);
-				    	hashDocArr=getDocumentText(getDocumentTextAsString(document));
-				    	preprocessDocumentText(hashDocArr,true);
-				    	processDocument(document,hashDocArr);
-				    	hashLemmArr=getDocumentText(getDocumentTextAsString(document));
-				    	preprocessDocumentText(hashLemmArr,false);
-				    	processDocument(document,hashLemmArr);
-				    	DBManager.getInstance().setIndexed((ObjectId)document.get("_id"),true);
-				    }
+				    	Hashtable<String, List<String>> hashImgArr = new Hashtable<String, List<String>>(1);
+				    	Hashtable<String, List<String>> hashImgLemmArr = new Hashtable<String, List<String>>(1);
+				    	hashImgArr=getDocumentText(getDocumentTextAsString(document,fieldtoIndex));
+				    	preprocessDocumentText(hashImgArr,true);
+				    	processsImages(document,hashImgArr);
+				    	
+				    	
+				    	hashImgLemmArr=getDocumentText(getDocumentTextAsString(document,fieldtoIndex));
+				    	preprocessDocumentText(hashImgLemmArr,false);
+				    	processsImages(document,hashImgLemmArr);
+				    	DBManager.getInstance().setIndexedImgs((String)document.get("_id"),true);
+				    	}
+				    	}
 				} finally {
-					// normalize tf and calulate tf_idf
-					DBManager.getInstance().normalizetfTitle();
-					documentCursor.close();
+
+					imagesCursor.close();
 				}
 			}
 			
 		return;
 		
-	}
+		
+	}	
 	
+	
+	
+public static void indexDocuments(String[] fieldsToIndex)
+{
+	// get documents to index
+	MongoCursor<org.bson.Document> documentCursor =DBManager.getInstance().getCrawledDocuments();
+	
+	// loop to index
+	
+	if(documentCursor!=null)
+	{
+		double documentCount=DBManager.getInstance().getDocumentsCount();
+			System.out.println(documentCount);
+			try {
+			    while (documentCursor.hasNext()) {
+			    	
+			    	Document document=documentCursor.next();
+			    	//TODO CHECK if you want to add weight for description
+			    	Hashtable<String, List<String>> hashDocArr = new Hashtable<String, List<String>>(4);
+			    	Hashtable<String, List<String>> hashLemmArr = new Hashtable<String, List<String>>(4);
+			    	
+			    	//STEMS
+			    	hashDocArr=getDocumentText(getDocumentTextAsString(document,fieldsToIndex));
+			    	preprocessDocumentText(hashDocArr,true);
+			    	processDocument(document,hashDocArr);
+			    	
+			    	//LEMMS
+			    	hashLemmArr=getDocumentText(getDocumentTextAsString(document,fieldsToIndex));
+			    	preprocessDocumentText(hashLemmArr,false);
+			    	processDocument(document,hashLemmArr);
+			    	DBManager.getInstance().setIndexed((ObjectId)document.get("_id"),true);
+			    }
+			} finally {
 
+				documentCursor.close();
+			}
+		}
+		
+	return;
+	
+	
+}
 	public static Hashtable<String, List<String>> getDocumentText(Hashtable<String,String> docString)
 	{
 		Hashtable<String, List<String>> docText=new Hashtable<String, List<String>>(4);
@@ -79,7 +150,7 @@ public class Indexer {
 	{
 		if(stemOLem==true)
 		{
-		docText.forEach((key,value) -> preprocessStemWordList(value));
+			docText.forEach((key,value) -> preprocessStemWordList(value));
 		}
 		else
 		{
@@ -108,13 +179,21 @@ public class Indexer {
     	iterateThroughWords(hashDocArr.get("pageParagraphs"),doc_id,titleCount,bodyCount, 0);	
 	
 	}
-	public static Hashtable<String,String> getDocumentTextAsString(Document document)
+	public static void processsImages(Document document,Hashtable<String, List<String>> hashDocArr)
 	{
-		Hashtable<String,String> docString= new Hashtable<String,String>(4);
-		docString.put("pageTitle",document.get("pageTitle").toString());
-		docString.put("pageDescription",document.get("pageDescription").toString());
-		docString.put("pageContent",document.get("pageContent").toString());
-		docString.put("pageParagraphs",document.get("pageParagraphs").toString());
+		String doc_id=(String) document.get("_id");
+    	double descriptionCount=hashDocArr.get("description").size();
+    	iterateThroughWordsImages(hashDocArr.get("description"),doc_id,descriptionCount);	
+	}
+	public static Hashtable<String,String> getDocumentTextAsString(Document document,String[] fieldsName)
+	{
+		Hashtable<String,String> docString= new Hashtable<String,String>(fieldsName.length);
+
+		for(int i=0;i<fieldsName.length;i++)
+		{
+			docString.put(fieldsName[i],document.get(fieldsName[i]).toString());
+		}
+
 		return docString;
 		
 	}
@@ -170,7 +249,17 @@ public class Indexer {
 
     	}	
     }
-		
+
+	
+	public static void iterateThroughWordsImages(List<String> list,String doc_id,
+				double descriptionCount)
+	{
+		ListIterator <String> i = list.listIterator();
+    	while (i.hasNext()) {
+    		String temp=i.next();
+    		DBManager.getInstance().insertInvertedWordIndexImages(temp, doc_id, descriptionCount);
+    	}	
+    }
 	
 
 }
