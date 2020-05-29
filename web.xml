@@ -22,8 +22,8 @@
          version="4.0"
          metadata-complete="true">
     <welcome-file-list>
-        <welcome-file>index.html</welcome-file>
-        <welcome-file>index.htm</welcome-file>
+        <welcome-file>/index.html</welcome-file>
+        <welcome-file>/index.htm</welcome-file>
     </welcome-file-list>
     <display-name>Tomcat Manager Application</display-name>
     <description>
@@ -37,9 +37,45 @@
         <servlet-name>QueryProcessor</servlet-name>
         <servlet-class>com.apt.QueryProcessor</servlet-class>
     </servlet>
+    <servlet>
+        <servlet-name>VoiceHandler</servlet-name>
+        <servlet-class>com.apt.VoiceHandler</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>SuggestionHandler</servlet-name>
+        <servlet-class>com.apt.SuggestionHandler</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>TrendsHander</servlet-name>
+        <servlet-class>com.apt.TrendsHandler</servlet-class>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>TrendsHander</servlet-name>
+        <url-pattern>/trends</url-pattern>
+    </servlet-mapping>
     <servlet-mapping>
         <servlet-name>QueryProcessor</servlet-name>
         <url-pattern>/search</url-pattern>
     </servlet-mapping>
-
+    <servlet-mapping>
+        <servlet-name>SuggestionHandler</servlet-name>
+        <url-pattern>/suggestion</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>VoiceHandler</servlet-name>
+        <url-pattern>/voice</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>default</servlet-name>
+        <url-pattern>*.css</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>default</servlet-name>
+        <url-pattern>*.html</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>default</servlet-name>
+        <url-pattern>*.js</url-pattern>
+    </servlet-mapping>
 </web-app>

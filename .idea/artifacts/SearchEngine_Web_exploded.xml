@@ -76,9 +76,22 @@
           <element id="library" level="project" name="Maven: edu.stanford.nlp:stanford-corenlp:models-english:4.0.0" />
           <element id="library" level="project" name="Maven: edu.stanford.nlp:stanford-parser:3.9.2" />
           <element id="library" level="project" name="Maven: com.googlecode.efficient-java-matrix-library:ejml:0.23" />
+          <element id="library" level="project" name="Maven: org.apache.commons:commons-math3:3.2" />
+          <element id="library" level="project" name="Maven: com.jaunt:jaunt:1.6.0" />
+          <element id="library" level="project" name="jaunt1.6.0" />
+          <element id="library" level="project" name="Maven: edu.stanford.nlp:stanford-corenlp:models:4.0.0" />
+          <element id="library" level="project" name="Maven: edu.stanford.nlp:stanford-corenlp:sources:4.0.0" />
+          <element id="library" level="project" name="Maven: log4j:log4j:1.2.17" />
+          <element id="library" level="project" name="Maven: org.apache.commons:commons-lang3:3.9" />
+          <element id="library" level="project" name="Maven: org.apache.commons:commons-text:1.8" />
+          <element id="library" level="project" name="Maven: org.slf4j:slf4j-api:1.7.5" />
+          <element id="library" level="project" name="Maven: org.slf4j:slf4j-log4j12:1.7.5" />
         </element>
       </element>
       <element id="file-copy" path="$PROJECT_DIR$/index.html" />
+      <element id="file-copy" path="$PROJECT_DIR$/audioHandler.js" />
+      <element id="file-copy" path="$PROJECT_DIR$/style.css" />
+      <element id="file-copy" path="$PROJECT_DIR$/searchHandler.js" />
     </root>
   </artifact>
 </component>

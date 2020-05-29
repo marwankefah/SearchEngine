@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans&family=Roboto:wght@500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./style.css" />
+    <title>Marx Engine</title>
+</head>
+<body class="results trends">
+
+<select id="countriesSelectList">
+</select>
+
+<form id="searchForm" autocomplete="off" method="GET" action="/search">
+    <h1>Marx - Trends</h1>
+    <input autocomplete="false" name="hidden" type="text" style="display:none;">
+    <div class="input-container">
+    </div>
+</form>
+<ul style="display: none" id="resultsList">
+    <li class="loaderItem">
+        <p>Loading...</p>
+    </li>
+</ul>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script src="countryCodes.js"></script>
+<script src="trendsHandler.js"></script>
+</body>
+</html>

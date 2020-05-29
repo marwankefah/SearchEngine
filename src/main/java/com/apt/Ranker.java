@@ -5,19 +5,18 @@ import org.bson.types.ObjectId;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class Ranker {
 
     private final double EPSILON = 0.001;
-    private final double PopularityFactor = 1000;
-    private final double dampingFactor = 0.15;
     ConcurrentHashMap<ObjectId, PageResult> network;
     ConcurrentHashMap<ObjectId, PageResult> pageResults;
     private ArrayList<PageResult> resultsList;
     //Note: The same index that points to a value is used in the adjacency matrix...
     PageResult[] values;
     boolean[][] mat;
-    public Ranker(ConcurrentHashMap<ObjectId, PageResult> pageResults) {
+    public Ranker(ConcurrentHashMap<ObjectId, PageResult> pageResults, String countryCode) {
         this.network = pageResults;
         this.pageResults = new ConcurrentHashMap<>();
         Iterator<PageResult> list = pageResults.values().iterator();
@@ -29,20 +28,39 @@ public class Ranker {
         this.generateNetwork(null);
         this.generateAdjacencyMatrix();
         this.computePR();
-        this.setScore();
+        this.setScore(countryCode);
         this.rank();
     }
 
 
-    public ArrayList<PageResult> getResultsList() {
-        return resultsList;
+    public CopyOnWriteArrayList<PageResult> getResultsList() {
+        CopyOnWriteArrayList copyOnWriteArrayList = new CopyOnWriteArrayList<>();
+        for (PageResult result: resultsList) {
+            copyOnWriteArrayList.add(result);
+        }
+        return copyOnWriteArrayList;
     }
 
-    private void setScore() {
+    private void setScore(String countryCode) {
         Iterator<PageResult> iterator = this.pageResults.values().iterator();
         while (iterator.hasNext()){
             PageResult entry = iterator.next();
-            double combinedScore = entry.getTfIDF() + entry.getPR();
+            double combinedScore = entry.getTfIDF() + entry.getPR() * 0.7;
+            if(countryCode.equals(entry.getCountryCode())){
+                combinedScore += 0.5 * combinedScore;
+            }
+            String pubDateType = entry.getPubDate().getClass().toString();
+            long pubDate;
+            if(pubDateType.contains("Integer")){
+                pubDate = ((Integer) entry.getPubDate()).longValue();
+            }else{
+                pubDate = (long) entry.getPubDate();
+            }
+            if(pubDate > 0){
+                Date currentDate = new Date();
+                combinedScore += ((double)currentDate.getTime() - pubDate)
+                        / (currentDate.getTime() * 100);
+            }
             entry.setCombinedScore(combinedScore);
         }
     }
@@ -138,11 +156,11 @@ public class Ranker {
         Collections.sort(resultsList, new ScoreComparator());
 
     }
-
-    public ArrayList<PageResult> rankPopularity(ArrayList<PageResult> list){
-        Collections.sort(list, new PopularityComparator());
-        return list;
-    }
+//
+//    public ArrayList<PageResult> rankPopularity(ArrayList<PageResult> list){
+//        Collections.sort(list, new PopularityComparator());
+//        return list;
+//    }
 
     private void PR(PageResult page){
 //        Iterator entries = DBManager.getInstance().getPagesPointingTo(page.getLink()).iterator();
@@ -164,24 +182,12 @@ public class Ranker {
         }
         return pages;
     }
-    private static class PopularityComparator implements Comparator<PageResult> {
 
-        public int compare(PageResult a, PageResult b) {
-            double subtraction = a.getTfIDF() - b.getTfIDF();
-            if(subtraction > 0){
-                return -1;
-            }else if(subtraction < 0){
-                return 1;
-            }
-            return 0;
-        }
-
-    }
 
     private static class ScoreComparator implements Comparator<PageResult> {
 
         public int compare(PageResult a, PageResult b) {
-            double subtraction = a.getTfIDF() - b.getTfIDF();
+            double subtraction = a.getCombinedScore() - b.getCombinedScore();
             if(subtraction > 0){
                 return -1;
             }else if(subtraction < 0){

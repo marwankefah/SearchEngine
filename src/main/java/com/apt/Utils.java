@@ -45,7 +45,8 @@ public class Utils {
             BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
             String line;
             String data = "";
-            while((line = bufferedReader.readLine()) != null){
+            Thread thread = Thread.currentThread();
+            while((line = bufferedReader.readLine()) != null && !thread.isInterrupted()){
                 data = data + line;
             }
             return data;
@@ -60,14 +61,14 @@ public class Utils {
     }
 
 
-    public static Page getPage(String link) {
-        String pageData = Utils.downloadURLData(link);
-        if(pageData == null || pageData == ""){
-            return getPage(Crawler.getAvailableLink());
-        }else{
-            return new Page(pageData, link);
-        }
-    }
+//    public static Page getPage(String link) {
+//        String pageData = Utils.downloadURLData(link);
+//        if(pageData == null || pageData == ""){
+//            return getPage(Crawler.getAvailableLink());
+//        }else{
+//            return new Page(pageData, link);
+//        }
+//    }
     
     
     public static Hashtable<String, Boolean> getStopWords(String fileName)

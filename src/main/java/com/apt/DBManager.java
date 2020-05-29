@@ -1,5 +1,7 @@
 package com.apt;
 
+import edu.stanford.nlp.util.Pair;
+import edu.stanford.nlp.util.Triple;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 
@@ -14,9 +16,10 @@ import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.*;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import javax.print.Doc;
+import java.beans.Expression;
+import java.util.*;
+import java.util.regex.Pattern;
 
 
 public class DBManager {
@@ -31,7 +34,8 @@ public class DBManager {
     private MongoCollection<Document> imagesCollection;
 //	private MongoCollection<Document> documentTokenCollection;
 	private MongoCollection<Document> invertedImgIndexCollection;
-
+    private MongoCollection<Document> nersCollection;
+    private MongoCollection<Document> suggestionCollection;
     private static DBManager instance;
 
     private DBManager() {
@@ -44,7 +48,8 @@ public class DBManager {
         this.processedPagesCollection = database.getCollection("processed-pages");
         this.unprocessedLinksCollection = database.getCollection("unprocessed-links");
         this.imagesCollection = database.getCollection("images");
-       
+        this.nersCollection = database.getCollection("ners");
+        this.suggestionCollection = database.getCollection("sugg");
         this.invertedImgIndexCollection=database.getCollection("inverted-imgs");
         this.invertedImgIndexCollection.createIndex(Indexes.ascending("token"));
         this.invertedImgIndexCollection.createIndex(Indexes.ascending("token","imageId"),new IndexOptions().unique(true));
@@ -56,17 +61,36 @@ public class DBManager {
         return this.processedPagesCollection.find(Filters.eq("_id", oId)).first();
     }
 
+    public Document getProcessedImage(String oId){
+        return this.imagesCollection.find(Filters.eq("_id", oId)).first();
+    }
+    public void saveNERs(ArrayList<Pair<String, String>> NERs){
+        for (Pair<String, String> pair: NERs) {
+            Document nerEntry = new Document("_id", new ObjectId());
+            nerEntry.append("value", pair.first);
+            nerEntry.append("cc", pair.second);
+            this.nersCollection.insertOne(nerEntry);
+        }
+    }
+
     public void addProcessedPage(Page page){
         if(page.getInvalid()) return;
+        if(page.getPageTitle() == null || page.getPageTitle().length() == 0) return;
+        if(page.getPageContent() == null || page.getPageContent().length() == 0) return;
         try{
             Document processedPage = new Document("_id", new ObjectId());
-            processedPage.append("pageLink", page.getOrigin());
+            processedPage.append("pageLink", page.getPageOriginalLink());
             processedPage.append("pageTitle", page.getPageTitle());
             processedPage.append("pageContent", page.getPageContent());
             processedPage.append("pageDescription", page.getPageDescription() == null ? "" : page.getPageDescription());
             processedPage.append("bodyCount", -0.2);
             processedPage.append("titleCount",-0.2);
-
+            if(page.getPubDate() != null){
+                processedPage.append("pubDate", page.getPubDate().getTime());
+            }else{
+                processedPage.append("pubDate", 0);
+            }
+            processedPage.append("countryCode", page.getCountryCode());
             BasicDBList paragraphList = new BasicDBList();
             for (String paragraph: page.getParagraphs()) {
                 paragraphList.add(paragraph);
@@ -94,6 +118,16 @@ public class DBManager {
 
     }
 
+    public void addSuggestion(String query){
+        try{
+            Document doc = new Document("_id", query);
+            doc.append("q", query);
+            this.suggestionCollection.insertOne(doc);
+        }catch (Exception e){
+
+        }
+    }
+
     private void saveImages(ArrayList<Image> images){
         for (Image image: images) {
             try {
@@ -116,6 +150,11 @@ public class DBManager {
 
     }
 
+
+
+    public MongoIterable<Document> getImageTokenEntries(String token){
+        return this.invertedImgIndexCollection.find(Filters.eq("token", token));
+    }
     public MongoIterable<Document> getTokenEntries(String token){
         return this.invertedCollection.find(Filters.eq("token", token));
     }
@@ -425,12 +464,44 @@ public class DBManager {
 
     }
 
+    public ArrayList<String> getSuggestions(String currentInput){
+        ArrayList<String> suggestions = new ArrayList<>();
+        Pattern pattern = Pattern.compile(".*" + currentInput + ".*", Pattern.CASE_INSENSITIVE);
+        MongoCursor<Document> cursor = this.suggestionCollection.find(Filters.regex("q", pattern)).iterator();
+        while(cursor.hasNext()){
+            Document suggestion = cursor.next();
+            suggestions.add(suggestion.getString("q"));
+        }
+        return  suggestions;
+    }
+
     public static DBManager getInstance() {
         if(instance == null) {
             instance = new DBManager();
         }
         return instance;
     }
+
+    public ArrayList<Pair<String, Integer>> getTrends(String countryCode){
+        MongoCursor<Document> iterator = this.nersCollection.find(
+                Filters.eq("cc", countryCode)
+        ).iterator();
+        HashMap<String, Pair<String, Integer>> trends = new HashMap<>();
+        while(iterator.hasNext()){
+            Document entry = iterator.next();
+            String value = entry.getString("value");
+            if(trends.containsKey(value)){
+                trends.get(value).setSecond(trends.get(value).second + 1);
+            }else{
+                Pair<String, Integer> pair = new Pair<>(value, 1);
+                trends.put(value, pair);
+            }
+        }
+        ArrayList<Pair<String, Integer>> list = new ArrayList<>();
+        list.addAll(trends.values());
+        return list;
+    }
+
 
 	public void normalizetfImages() {
 		// TODO Auto-generated method stub

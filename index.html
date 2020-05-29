@@ -1,17 +1,45 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans&family=Roboto:wght@500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./style.css" />
+  <title>Marx Engine</title>
+  <link rel="stylesheet" href="path/to/photoswipe.css">
+  <link rel="stylesheet" href="path/to/default-skin/default-skin.css">
 </head>
 <body>
 
+  <select id="countriesSelectList">
+  </select>
 
-  <form method="GET" action="/search">
-    <h1>DEX</h1>
+  <form id="searchForm" autocomplete="off" method="GET" action="/search">
+    <h1>Marx</h1>
+    <input autocomplete="false" name="hidden" type="text" style="display:none;">
     <div class="input-container">
       <input type="text" name="q" id="textContainer" placeholder="Type something to search" />
+      <button type="button" id="voiceRecorder">
+        <svg viewBox="0 0 24 24">
+          <path fill="#cc0000" d="M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2M19,11C19,14.53 16.39,17.44 13,17.93V21H11V17.93C7.61,17.44 5,14.53 5,11H7A5,5 0 0,0 12,16A5,5 0 0,0 17,11H19Z" />
+        </svg>
+      </button>
+      <ul id="suggestionsList">
+      </ul>
     </div>
-    <button type="button" id="searchBtn">Go</button>
+    <button id="searchBtn">Search</button>
+    <button id="imgSearchBtn">Image Search</button>
   </form>
+  <ul style="display: none" id="resultsList">
+    <li class="loaderItem">
+      <p>Loading...</p>
+    </li>
+  </ul>
+  <p id="unsplashAttribution">
+    To check trends visit <a href="/trends.html" target="_blank">Marx' Trends</a>
+  </p>
+  <script src="https://cdn.rawgit.com/mattdiamond/Recorderjs/08e7abd9/dist/recorder.js"></script>
+  <script src="audioHandler.js"></script>
+  <script src="searchHandler.js"></script>
+  <script src="countryCodes.js"></script>
+  <script src="trendsHandler.js"></script>
 </body>
 </html>

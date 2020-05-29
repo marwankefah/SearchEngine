@@ -16,7 +16,12 @@ public class SeedListGenerator {
 //        Page entryPage = Utils.getPage(entryPoint);
 //
 //        if(entryPage == null) {
-//            System.exit(1);
+//            System.exit(1);  links.add("https://www.b2byellowpages.com/directory/");
+//        links.add("https://www.brownbook.net/");
+//        links.add("https://www.blogarama.com/");
+//        links.add("https://www.spoke.com/");
+//        links.add("https://aboutus.com/");
+//        links.add("https://botw.org/");
 //        }
 //
 //        ArrayList<String> links = entryPage.getLinks();
@@ -25,12 +30,12 @@ public class SeedListGenerator {
 //        return links;
 
         ArrayList<String> links = new ArrayList<>();
-        links.add("https://www.b2byellowpages.com/directory/");
-        links.add("https://www.brownbook.net/");
-        links.add("https://www.blogarama.com/");
-        links.add("https://www.spoke.com/");
-        links.add("https://aboutus.com/");
-        links.add("https://botw.org/");
+        links.add("https://www.yelp.com/");
+        links.add("https://www.nytimes.com/");
+//        links.add("https://www.blogarama.com/");
+//        links.add("https://www.spoke.com/");
+//        links.add("https://www.forbes.com/");
+//        links.add("https://botw.org/");
         return links;
 
     }

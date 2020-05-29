@@ -1,3 +1,7 @@
+*{
+    box-sizing: border-box;
+}
+
 html, body{
     width: 100%;
     height: 100%;
@@ -5,9 +9,288 @@ html, body{
     padding: 0;
 }
 
+h1,h2,h3,h4,h5,h6{
+    font-family: 'Roboto', sans-serif;
+}
+
 body{
     display: flex;
-    justify-content: space-evenly;
+    justify-content: space-around;
     align-items: center;
     flex-direction: column;
+    font-size: 18px;
+    background-image: url("./ussr.png");
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: top left;
+    font-family: 'Open Sans', sans-serif;
+}
+
+body.results{
+    background-image: unset;
+    background-color: #fff;
+    display: initial;
+}
+
+body.results form{
+    display: flex;
+    background: #cc0000;
+    justify-content: space-around;
+    align-items: center;
+}
+body.results form h1{
+    text-shadow: unset;
+}
+body.results form #searchBtn,
+body.results form #imgSearchBtn{
+    margin: 1em;
+}
+body.results #unsplashAttribution{
+    display: none;
+}
+ul{
+    padding: 0;
+    margin: 0;
+}
+#resultsList{
+    margin-top: 1em !important;
+}
+li{
+    list-style-type: none;
+    margin: 0 0 0.5em;
+    border-bottom: 1px solid #ccc;
+    padding: 0 0 0 1em;
+}
+.image img {
+    max-width: 100%;
+    height: 230px;
+    width: auto !important;
+}
+li.image {
+    width: auto;
+    padding: 0 !important;
+    background-color: #000;
+    max-width: 29vw;
+}
+li.image a{
+    display: flex;
+    width: 100%;
+    height: 100%;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 0.5em;
+    background-color: #000000;
+}
+.image p {
+    position: absolute;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    width: calc(100% - 1em);
+    margin: 0;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-indent: 6px;
+}
+.image {
+    position: relative;
+}
+body.imageResults #resultsList {
+    display: flex !important;
+    flex-wrap: wrap;
+    justify-content: space-evenly;
+    align-items: baseline;
+}
+h1{
+    margin: 0;
+    padding: 1em;
+    text-align: center;
+    word-spacing: 1em;
+    color: #fff;
+    text-shadow: 0 0 10px rgba(0, 0, 0, 1);
+}
+
+#voiceRecorder.loading path{
+    animation: loadingAnimation 5s linear 2s infinite alternate;
+}
+
+@keyframes loadingAnimation {
+    0%{
+        fill: #008080;
+    }
+    50%{
+        fill: orangered;
+    }
+    75%{
+        fill: cornflowerblue;
+    }
+}
+body.loading .loaderItem{
+    display: initial;
+}
+
+body .loaderItem{
+    display: none;
+}
+
+form{
+    width: 100%;
+    text-align: center;
+}
+input{
+    width: 100%;
+    padding: 0.5em;
+    font-size: 1em;
+    border-radius: 0;
+    border-radius: 6px;
+    height: 45px;
+    text-indent: 0.25em;
+    border: 0;
+    background-color: rgba(255,255,255,0.7);
+    margin: 0.5em;
+    transition: all 0.2s ease;
+    margin: 0;
+}
+input:focus,
+input:active,
+button:active,
+button:focus,
+#countriesSelectList:focus,
+#countriesSelectList:active{
+    outline: none;
+}
+input:focus,
+input:active{
+    background-color: rgba(255,255,255,0.9);
+}
+
+button:not(#voiceRecorder){
+    width: 50%;
+    max-width: 150px;
+    border: 0;
+    color: #000;
+    background-color: rgba(255,255,255,0.9);
+    padding: 0.7em;
+    font-size: 1em;
+    border-radius: 6px;
+    margin: 1em 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: bold;
+    box-shadow: 0 6px 6px rgba(0, 0, 0, 0.5);
+    font-family: 'Open Sans', sans-serif;
+}
+#voiceRecorder{
+    width: 45px;
+    height: 45px;
+    margin: 0;
+    padding: 0;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+    right: 0; 
+    background: transparent;
+    cursor: pointer;
+    border: 0;
+    font-family: 'Open Sans', sans-serif;
+}
+#voiceRecorder svg{
+    height: 70%; 
+}
+.input-container{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    width: 70%;
+    margin: 0 auto;
+    max-width: 680px;
+}
+button:not(#voiceRecorder):active,
+button:not(#voiceRecorder):hover{
+    transform: translateY(6px);
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+}
+
+
+
+#unsplashAttribution{
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    color: #fff;
+    text-shadow: 0 0 10px rgba(0, 0, 0, 1);
+    margin: 0;
+    padding: 0.5em;
+}
+img {
+    width: 250px;
+}
+li.loaderItem {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+a{
+    color: cornflowerblue;
+}
+
+a:visited,
+a:active,
+a:focus{
+    outline: none;
+    color: #af2ab1;
+}
+input.suggestionsVisible{
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+#suggestionsList{
+    position: absolute;
+    top: 100%;
+    width: 100%;
+    text-align: left;
+    max-height: 250px;
+    overflow: auto;
+    z-index: 5;
+}
+
+#suggestionsList li {
+    background: #fff;
+    width: 100%;
+    margin: 0;
+    padding: 0.5em;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+select#countriesSelectList {
+    padding: 0.7em;
+    border: 0;
+    border-radius: 6px;
+    color: #fff;
+    top: 1em;
+    left: 1em;
+    position: absolute;
+    background: #cc0000;
+    font-family: Roboto, sans-serif;
+}
+body.results select#countriesSelectList {
+    position: unset;
+    width: 100%;
+    border-radius: 0;
+}
+#resultsList li {
+    border: 0;
+    padding: 0.1em 1em;
+}
+#unsplashAttribution a:visited,
+#unsplashAttribution a:active,
+#unsplashAttribution a:focus{
+    color: cornflowerblue;
+}
+body.trends form#searchForm {
+    display: block;
 }

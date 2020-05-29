@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="Maven: com.jaunt:jaunt:1.6.0">
+    <CLASSES />
+    <JAVADOC>
+      <root url="jar://$MAVEN_REPOSITORY$/com/jaunt/jaunt/1.6.0/jaunt-1.6.0-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$MAVEN_REPOSITORY$/com/jaunt/jaunt/1.6.0/jaunt-1.6.0-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

@@ -1,5 +1,7 @@
 package com.apt;
 
+import com.jaunt.UserAgent;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
@@ -12,9 +14,10 @@ import java.util.ArrayList;
 public class SeedWorker implements Runnable {
 
     String initialLink;
-
+    UserAgent userAgent;
 
     public SeedWorker() {
+        this.userAgent = new UserAgent();
         this.initialLink = Crawler.getAvailableLink();
     }
 
@@ -27,7 +30,7 @@ public class SeedWorker implements Runnable {
                 return;
             }
 
-            Page page = Utils.getPage(pageLink);
+            Page page = new Page(pageLink, this.userAgent);
             if(page == null){
                 return;
             }
@@ -45,6 +48,7 @@ public class SeedWorker implements Runnable {
 
         }catch (Exception e){
             e.printStackTrace();
+            process(Crawler.getAvailableLink());
         }
     }
 

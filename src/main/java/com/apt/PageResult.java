@@ -89,4 +89,15 @@ public class PageResult {
     public void addToken(String token) {
         tokens.add(token);
     }
+
+    public String getCountryCode() {
+        if(this.doc == null) return "";
+        return this.doc.getString("countryCode");
+    }
+
+
+    public Object getPubDate() {
+        if(this.doc == null) return 0;
+        return this.doc.get("pubDate");
+    }
 }

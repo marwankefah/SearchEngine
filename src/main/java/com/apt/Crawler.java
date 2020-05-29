@@ -1,7 +1,10 @@
 package com.apt;
 
-import java.util.*;
+import com.jaunt.Element;
+import com.jaunt.Elements;
+import com.jaunt.UserAgent;
 
+import java.util.*;
 
 public class Crawler {
 
@@ -56,6 +59,7 @@ public class Crawler {
 //            }else{
                 unprocessedLinks.addAll(links);
                 unprocessedLinks = Utils.removeDuplicates(unprocessedLinks);
+                //Maybe make it add just the new ones?
                 DBManager.getInstance().saveUnprocessedLinks(links);
                 counter.uncheck();
 //            }
@@ -73,7 +77,7 @@ public class Crawler {
 //        Runtime.getRuntime().addShutdownHook(new Thread(new ShutdownHandler()));
 
         int numThreads = Integer.parseInt(Utils.getUserInput("Number of threads: "));
-        boolean recrawl = true;
+        boolean recrawl = false;
         if(!recrawl){
             unprocessedLinks = DBManager.getInstance().getUnprocessedLinks();
             if(unprocessedLinks.size() != 0){
@@ -93,6 +97,16 @@ public class Crawler {
             threads.get(i).start();
         }
 
+//        try{
+//            UserAgent userAgent = new UserAgent();         //create new userAgent (headless browser)
+//            userAgent.visit("http://google.com");          //visit google
+//            userAgent.doc.apply("butterflies").submit();   //apply form input and submit
+//            System.out.println(userAgent.doc.getUrl());
+//            Elements links = userAgent.doc.findEvery("<a>");  //find search result links
+//            for(Element link : links) System.out.println(link.getAt("href"));   //print results
+//        }catch (Exception e){
+//            e.printStackTrace();
+//        }
     }
 
     public static ArrayList<Thread> getRunningThreads() {
