@@ -20,8 +20,8 @@ public class Page {
     // Also, FML
     // And I didn't need it after all....
 
-    ArrayList<String> links = new ArrayList<>();
-    ArrayList<Image> images = new ArrayList<>();
+    ArrayList<String> links;
+    ArrayList<Image> images;
     String html;
     String pageOriginalLink;
     String protocolString;
@@ -57,8 +57,18 @@ public class Page {
     String countryCode = "";
 //Could add keywords & author meta tags but they're not that important...
 
+    public static String removeQueryParams(String link){
+        String noQueryParams;
+        if(link.contains("?")){
+            noQueryParams = link.substring(0, link.indexOf("?"));
+        }else{
+            noQueryParams = link;
+        }
+        return noQueryParams;
+    }
+
     public Page(String link, UserAgent userAgent) {
-        this.link = link.substring(0, link.indexOf("?"));
+        this.link = removeQueryParams(link);
         this.userAgent = userAgent;
         try{
             this.userAgent.visit(this.link);
@@ -66,7 +76,7 @@ public class Page {
             System.out.println("Couldn't visit: " + link);
             return;
         }
-        this.link = userAgent.doc.getUrl();
+        this.link = removeQueryParams(userAgent.doc.getUrl());
         if(this.link.startsWith("https://")){
             this.protocolString = "https://";
         }else if(this.link.startsWith("http://")){
@@ -482,7 +492,7 @@ public class Page {
         }else if(link != null && link.startsWith("/")){
             absoluteURL = RobotsParser.getOriginURL(this.pageOriginalLink) + link;
         }else{
-            absoluteURL = link.substring(0, link.indexOf("?"));
+            absoluteURL = removeQueryParams(link);
         }
         return absoluteURL;
     }
@@ -492,6 +502,7 @@ public class Page {
         return link.replaceAll(regex, "");
     }
     private void setLinks() {
+        this.links = new ArrayList<>();
         RobotsParser parser = RobotsParser.getParser(this.pageOriginalLink);
         try{
             Elements aElements = this.userAgent.doc.findEvery("<a>");
@@ -516,6 +527,7 @@ public class Page {
 
     private void setImages() {
         try{
+            this.images = new ArrayList<>();
             Elements imgElements = this.userAgent.doc.findEvery("<img>");
             for (Element el: imgElements) {
                 String link = el.getAtString("src");
