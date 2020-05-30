@@ -234,14 +234,15 @@ public static void indexDocuments(String[] fieldsToIndex)
     		ListIterator <String> i = list.listIterator();
         	while (i.hasNext()) {
         		String temp=i.next();
-        		if(temp == null) continue;
+        		if(temp == null) {continue;}
+
+        		temp=temp.toLowerCase();
                 if(temp.length()<2 || hashStopWords.contains(temp))
                 {
                 	i.remove();
                 }
                 else
-                {
-            		temp=temp.toLowerCase();
+				{
             		String tstem=s.stem(temp);
             		i.set(tstem);
                 }
