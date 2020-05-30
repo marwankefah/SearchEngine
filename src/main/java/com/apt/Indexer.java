@@ -9,6 +9,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 
+import io.advantageous.boon.core.Sys;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 import com.mongodb.client.MongoCursor;
@@ -19,7 +20,7 @@ import edu.stanford.nlp.simple.Sentence;
 public class Indexer {
 	static Hashtable<String,Boolean> hashStopWords=Utils.getStopWords("stopwords_en.txt");;
 	static Stemmer s=new Stemmer();
-	static String[] docFieldsToIndex= {"pageTitle","pageDescription","pageContent","pageParagraphs"};
+	static String[] docFieldsToIndex= {"pageTitle","pageDescription","pageContent"};
 	static String[] ImgsFieldToIndex= {"description"};
    public Indexer()
 	{
@@ -78,10 +79,9 @@ public static void indexImages(String[] fieldtoIndex)
 				    	preprocessDocumentText(hashImgArr,true);
 				    	processsImages(document,hashImgArr);
 				    	
-				    	
-				    	hashImgLemmArr=getDocumentText(getDocumentTextAsString(document,fieldtoIndex));
-				    	preprocessDocumentText(hashImgLemmArr,false);
-				    	processsImages(document,hashImgLemmArr);
+//				    	hashImgLemmArr=getDocumentText(getDocumentTextAsString(document,fieldtoIndex));
+//				    	preprocessDocumentText(hashImgLemmArr,false);
+//				    	processsImages(document,hashImgLemmArr);
 				    	DBManager.getInstance().setIndexedImgs((String)document.get("_id"),true);
 				    	}
 				    	}
@@ -110,24 +110,40 @@ public static void indexDocuments(String[] fieldsToIndex)
 		double documentCount=DBManager.getInstance().getDocumentsCount();
 			System.out.println(documentCount);
 			try {
-			    while (documentCursor.hasNext()) {
-			    	
-			    	Document document=documentCursor.next();
-			    	//TODO CHECK if you want to add weight for description
-			    	Hashtable<String, List<String>> hashDocArr = new Hashtable<String, List<String>>(4);
-			    	Hashtable<String, List<String>> hashLemmArr = new Hashtable<String, List<String>>(4);
-			    	
-			    	//STEMS
-			    	hashDocArr=getDocumentText(getDocumentTextAsString(document,fieldsToIndex));
-			    	preprocessDocumentText(hashDocArr,true);
-			    	processDocument(document,hashDocArr);
-			    	
-			    	//LEMMS
-			    	hashLemmArr=getDocumentText(getDocumentTextAsString(document,fieldsToIndex));
-			    	preprocessDocumentText(hashLemmArr,false);
-			    	processDocument(document,hashLemmArr);
-			    	DBManager.getInstance().setIndexed((ObjectId)document.get("_id"),true);
-			    }
+				Boolean index=true;
+				while (index) {
+					try
+					{
+						index=documentCursor.hasNext();
+						if(index==false)
+						{
+							break;
+						}
+					}
+					catch(Exception e) {
+						System.out.println("Exception occured in mongodb");
+						documentCursor = DBManager.getInstance().getCrawledDocuments();
+						index = true;
+						continue;
+					}
+
+					Document document = documentCursor.next();
+					//TODO CHECK if you want to add weight for description
+					Hashtable<String, List<String>> hashDocArr = new Hashtable<String, List<String>>(4);
+//					Hashtable<String, List<String>> hashLemmArr = new Hashtable<String, List<String>>(4);
+
+					//STEMS
+					hashDocArr = getDocumentText(getDocumentTextAsString(document, fieldsToIndex));
+					preprocessDocumentText(hashDocArr, true);
+					processDocument(document, hashDocArr);
+//
+//			    	//LEMMS
+//			    	hashLemmArr=getDocumentText(getDocumentTextAsString(document,fieldsToIndex));
+//			    	preprocessDocumentText(hashLemmArr,false);
+//			    	processDocument(document,hashLemmArr);
+
+					DBManager.getInstance().setIndexed((ObjectId) document.get("_id"), true);
+				}
 			} finally {
 
 				documentCursor.close();
@@ -170,14 +186,13 @@ public static void indexDocuments(String[] fieldsToIndex)
 	public static void processDocument(Document document,Hashtable<String, List<String>> hashDocArr)
 	{
 		ObjectId doc_id=(ObjectId) document.get("_id");
-    	double bodyCount=hashDocArr.get("pageParagraphs").size()
-    			+hashDocArr.get("pageContent").size();
+    	double bodyCount=hashDocArr.get("pageContent").size();
     	double titleCount=hashDocArr.get("pageTitle").size();
     	iterateThroughWords(hashDocArr.get("pageTitle"),doc_id,titleCount,bodyCount,1);
     	iterateThroughWords(hashDocArr.get("pageDescription"),doc_id,titleCount,bodyCount,0);
     	iterateThroughWords(hashDocArr.get("pageContent"),doc_id,titleCount,bodyCount,0);
-    	iterateThroughWords(hashDocArr.get("pageParagraphs"),doc_id,titleCount,bodyCount, 0);	
-	
+    	//iterateThroughWords(hashDocArr.get("pageParagraphs"),doc_id,titleCount,bodyCount, 0);
+
 	}
 	public static void processsImages(Document document,Hashtable<String, List<String>> hashDocArr)
 	{
