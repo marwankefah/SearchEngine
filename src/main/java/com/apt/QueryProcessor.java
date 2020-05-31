@@ -161,7 +161,7 @@ public class QueryProcessor extends HttpServlet {
         }else if(isImgSearch && imgCache.containsKey(query)){
             handleNer(query, countryCode);
             imagePaginations.add((CopyOnWriteArrayList<ImageResult>) imgCache.get(query).clone());
-            resp.getWriter().println(getResponse(imagePaginations.size() - 1));
+            resp.getWriter().println(getImageResponse(imagePaginations.size() - 1));
         }else{
             handleNer(query, countryCode);
             DBManager.getInstance().addSuggestion(query);
@@ -239,9 +239,13 @@ public class QueryProcessor extends HttpServlet {
             return convertToJson(list, true, idx);
         }else{
             CopyOnWriteArrayList<PageResult> list = new CopyOnWriteArrayList<>();
-            for (int i = 0; i < PAGINATION_SIZE; i++) {
-                list.add(queryPaginations.get(idx).get(i));
-                queryPaginations.get(idx).remove(i);
+            Iterator iterator=queryPaginations.get(idx).iterator();
+            while(iterator.hasNext())
+            {
+                PageResult entry = (PageResult) iterator.next();
+                list.add(entry);
+                iterator.remove();
+                queryPaginations.get(idx).remove(0);
             }
             return convertToJson(list, false, idx);
         }
@@ -259,10 +263,20 @@ public class QueryProcessor extends HttpServlet {
             return imageConvertToJson(list, true, idx);
         } else {
             CopyOnWriteArrayList<ImageResult> list = new CopyOnWriteArrayList<>();
-            for (int i = 0; i < PAGINATION_SIZE; i++) {
-                list.add(imagePaginations.get(idx).get(i));
-                imagePaginations.get(idx).remove(i);
+            Iterator iterator=imagePaginations.get(idx).iterator();
+            while(iterator.hasNext())
+            {
+                ImageResult entry = (ImageResult) iterator.next();
+                list.add(entry);
+                imagePaginations.get(idx).remove(0);
+
             }
+//
+//            for (int i = 0; i < PAGINATION_SIZE && i<size; i++) {
+//                list.add(imagePaginations.get(idx).get(i));
+//                imagePaginations.get(idx).remove(i);
+//
+//            }
             return imageConvertToJson(list, false, idx);
         }
     }
