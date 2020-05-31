@@ -347,14 +347,14 @@ public class DBManager {
     		{
 
     			updateQuery.append("$inc", new BasicDBObject("tfTitle", 1.0));
-    			updateQuery.append("$setOnInsert", new BasicDBObject("tfBody", 1.0)
+    			updateQuery.append("$setOnInsert", new BasicDBObject("tfBody", 0.0)
     					.append("tfIdf",0.0).append("normalized", false));
     		}
     		else
     		{
 
     			updateQuery.append("$inc", new BasicDBObject("tfBody",1.0));
-    			updateQuery.append("$setOnInsert", new BasicDBObject("tfTitle", 1.0)
+    			updateQuery.append("$setOnInsert", new BasicDBObject("tfTitle", 0.0)
     					.append("tfIdf",0.0).append("normalized", false));
     		}
 
@@ -537,7 +537,7 @@ public class DBManager {
 			BasicDBObject set = new BasicDBObject("$set", carrier);
 			carrier.put("tfIdf",tf_idf);
 			carrier.put("normalized",true); 
-			carrier.put("tfTitle",normalizedTfTitle);
+			carrier.put("tfDescription",normalizedTfTitle);
 
 			String doc_id=(String)a.get("imageId");
 			BasicDBObject query = new BasicDBObject();

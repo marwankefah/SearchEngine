@@ -32,6 +32,9 @@ public class SeedListGenerator {
         ArrayList<String> links = new ArrayList<>();
         links.add("https://www.yelp.com/");
         links.add("https://www.nytimes.com/");
+        links.add("https://www.gettyimages.com/");
+        links.add("https://www.alexa.com/topsites/");
+        links.add("https://en.wikipedia.org/wiki/Main_Page");
 //        links.add("https://www.blogarama.com/");
 //        links.add("https://www.spoke.com/");
 //        links.add("https://www.forbes.com/");
