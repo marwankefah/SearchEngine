@@ -86,6 +86,68 @@
           <element id="library" level="project" name="Maven: org.apache.commons:commons-text:1.8" />
           <element id="library" level="project" name="Maven: org.slf4j:slf4j-api:1.7.5" />
           <element id="library" level="project" name="Maven: org.slf4j:slf4j-log4j12:1.7.5" />
+          <element id="library" level="project" name="Maven: io.gatling:jsonpath_2.12:0.6.9" />
+          <element id="library" level="project" name="Maven: io.gatling:gatling-recorder:2.3.1" />
+          <element id="library" level="project" name="Maven: org.asynchttpclient:async-http-client:2.0.39" />
+          <element id="library" level="project" name="Maven: org.asynchttpclient:netty-resolver-dns:2.0.39" />
+          <element id="library" level="project" name="Maven: org.jodd:jodd-lagarto:3.8.6" />
+          <element id="library" level="project" name="Maven: io.netty:netty-transport:4.0.56.Final" />
+          <element id="library" level="project" name="Maven: com.typesafe.scala-logging:scala-logging_2.12:3.7.2" />
+          <element id="library" level="project" name="Maven: com.typesafe.akka:akka-actor_2.12:2.5.4" />
+          <element id="library" level="project" name="Maven: io.gatling:gatling-http:2.3.1" />
+          <element id="library" level="project" name="Maven: io.advantageous.boon:boon-json:0.6.6" />
+          <element id="library" level="project" name="Maven: org.scala-lang.modules:scala-swing_2.12:2.0.0" />
+          <element id="library" level="project" name="Maven: io.gatling:gatling-redis:2.3.1" />
+          <element id="library" level="project" name="Maven: org.loadtest4j:loadtest4j:0.19.0" />
+          <element id="library" level="project" name="Maven: net.sf.saxon:Saxon-HE:9.8.0-4" />
+          <element id="library" level="project" name="Maven: org.scala-lang.modules:scala-xml_2.12:1.0.6" />
+          <element id="library" level="project" name="Maven: org.jodd:jodd-core:3.8.6" />
+          <element id="library" level="project" name="Maven: org.jodd:jodd-log:3.8.6" />
+          <element id="library" level="project" name="Maven: commons-pool:commons-pool:1.6" />
+          <element id="library" level="project" name="Maven: com.github.ben-manes.caffeine:caffeine:2.5.5" />
+          <element id="library" level="project" name="Maven: io.gatling:gatling-jms:2.3.1" />
+          <element id="library" level="project" name="Maven: com.typesafe.akka:akka-slf4j_2.12:2.5.4" />
+          <element id="library" level="project" name="Maven: com.softwaremill.quicklens:quicklens_2.12:1.4.8" />
+          <element id="library" level="project" name="Maven: org.scala-lang:scala-reflect:2.12.3" />
+          <element id="library" level="project" name="Maven: com.typesafe.netty:netty-reactive-streams:1.0.8" />
+          <element id="library" level="project" name="Maven: com.dongxiguo:fastring_2.12:0.3.1" />
+          <element id="library" level="project" name="Maven: com.fasterxml.jackson.core:jackson-core:2.9.0" />
+          <element id="library" level="project" name="Maven: org.asynchttpclient:netty-resolver:2.0.39" />
+          <element id="library" level="project" name="Maven: io.gatling:gatling-app:2.3.1" />
+          <element id="library" level="project" name="Maven: io.gatling.highcharts:gatling-charts-highcharts:2.3.1" />
+          <element id="library" level="project" name="Maven: org.reactivestreams:reactive-streams:1.0.0" />
+          <element id="library" level="project" name="Maven: org.apache.geronimo.specs:geronimo-jms_1.1_spec:1.1.1" />
+          <element id="library" level="project" name="Maven: ch.qos.logback:logback-classic:1.2.3" />
+          <element id="library" level="project" name="Maven: org.loadtest4j.drivers:loadtest4j-gatling:0.10.0" />
+          <element id="library" level="project" name="Maven: org.asynchttpclient:netty-codec-dns:2.0.39" />
+          <element id="library" level="project" name="Maven: io.gatling:gatling-metrics:2.3.1" />
+          <element id="library" level="project" name="Maven: ch.qos.logback:logback-core:1.2.3" />
+          <element id="library" level="project" name="Maven: com.github.scopt:scopt_2.12:3.7.0" />
+          <element id="library" level="project" name="Maven: com.fasterxml.jackson.core:jackson-annotations:2.9.0" />
+          <element id="library" level="project" name="Maven: io.netty:netty-codec-http:4.0.56.Final" />
+          <element id="library" level="project" name="Maven: com.tdunning:t-digest:3.1" />
+          <element id="library" level="project" name="Maven: org.bouncycastle:bcprov-jdk15on:1.58" />
+          <element id="library" level="project" name="Maven: io.netty:netty-handler:4.0.56.Final" />
+          <element id="library" level="project" name="Maven: io.netty:netty-common:4.0.56.Final" />
+          <element id="library" level="project" name="Maven: org.hdrhistogram:HdrHistogram:2.1.9" />
+          <element id="library" level="project" name="Maven: com.fasterxml.jackson.core:jackson-databind:2.9.0" />
+          <element id="library" level="project" name="Maven: com.fasterxml.jackson.dataformat:jackson-dataformat-csv:2.9.0" />
+          <element id="library" level="project" name="Maven: com.typesafe:config:1.3.1" />
+          <element id="library" level="project" name="Maven: io.gatling:gatling-commons:2.3.1" />
+          <element id="library" level="project" name="Maven: org.asynchttpclient:async-http-client-netty-utils:2.0.39" />
+          <element id="library" level="project" name="Maven: org.scala-lang.modules:scala-parser-combinators_2.12:1.0.6" />
+          <element id="library" level="project" name="Maven: io.suzaku:boopickle_2.12:1.2.6" />
+          <element id="library" level="project" name="Maven: org.scala-lang.modules:scala-java8-compat_2.12:0.8.0" />
+          <element id="library" level="project" name="Maven: io.gatling:gatling-charts:2.3.1" />
+          <element id="library" level="project" name="Maven: io.gatling:gatling-jdbc:2.3.1" />
+          <element id="library" level="project" name="Maven: org.bouncycastle:bcpkix-jdk15on:1.58" />
+          <element id="library" level="project" name="Maven: io.netty:netty-codec:4.0.56.Final" />
+          <element id="library" level="project" name="Maven: net.debasishg:redisclient_2.12:3.4" />
+          <element id="library" level="project" name="Maven: io.netty:netty-buffer:4.0.56.Final" />
+          <element id="library" level="project" name="Maven: org.scala-lang:scala-library:2.12.3" />
+          <element id="library" level="project" name="Maven: io.gatling:gatling-core:2.3.1" />
+          <element id="library" level="project" name="Maven: io.advantageous.boon:boon-reflekt:0.6.6" />
+          <element id="library" level="project" name="Maven: io.netty:netty-transport-native-epoll:linux-x86_64:4.0.56.Final" />
         </element>
       </element>
       <element id="file-copy" path="$PROJECT_DIR$/index.html" />
