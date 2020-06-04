@@ -24,6 +24,8 @@ import edu.stanford.nlp.simple.*;
 
 public class QueryProcessor extends HttpServlet {
 
+//    static Ranker ranker = new Ranker();
+
     static final int PAGINATION_SIZE = 20;
 
     static LinkedHashMap<String, CopyOnWriteArrayList<PageResult>> qCache = new LinkedHashMap<>();
@@ -153,7 +155,11 @@ public class QueryProcessor extends HttpServlet {
             return;
         }
         if(idx > -1){
-            resp.getWriter().println(getResponse(idx));
+            if(isImgSearch){
+                resp.getWriter().println(getImageResponse(idx));
+            }else{
+                resp.getWriter().println(getResponse(idx));
+            }
         }else if(!isImgSearch && qCache.containsKey(query+countryCode)){
             handleNer(query, countryCode);
             queryPaginations.add((CopyOnWriteArrayList<PageResult>) qCache.get(query+countryCode).clone());
@@ -208,8 +214,7 @@ public class QueryProcessor extends HttpServlet {
                 }
 
                 //Rank -> Convert to JSON -> Send
-                Ranker ranker = new Ranker(pageResults, countryCode);
-                CopyOnWriteArrayList<PageResult> list = ranker.getResultsList();
+                CopyOnWriteArrayList<PageResult> list = Ranker.rank(pageResults, countryCode);
                 queryPaginations.add(list);
                 qCache.put(query+countryCode, (CopyOnWriteArrayList<PageResult>) list.clone());
                 resp.getWriter().println(getResponse(queryPaginations.size() - 1));
@@ -240,11 +245,13 @@ public class QueryProcessor extends HttpServlet {
         }else{
             CopyOnWriteArrayList<PageResult> list = new CopyOnWriteArrayList<>();
             Iterator iterator=queryPaginations.get(idx).iterator();
+            int count = 0;
             while(iterator.hasNext())
             {
+                if(count++ >= PAGINATION_SIZE) break;
                 PageResult entry = (PageResult) iterator.next();
                 list.add(entry);
-                iterator.remove();
+//                iterator.remove();
                 queryPaginations.get(idx).remove(0);
             }
             return convertToJson(list, false, idx);
@@ -264,8 +271,10 @@ public class QueryProcessor extends HttpServlet {
         } else {
             CopyOnWriteArrayList<ImageResult> list = new CopyOnWriteArrayList<>();
             Iterator iterator=imagePaginations.get(idx).iterator();
+            int count = 0;
             while(iterator.hasNext())
             {
+                if(count++ >= PAGINATION_SIZE) break;
                 ImageResult entry = (ImageResult) iterator.next();
                 list.add(entry);
                 imagePaginations.get(idx).remove(0);

@@ -5,6 +5,7 @@ import org.bson.types.ObjectId;
 
 import javax.print.Doc;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class PageResult {
@@ -14,7 +15,7 @@ public class PageResult {
     Document doc;
     double PR = 0;
     double combinedScore;
-
+    private ArrayList<ObjectId> pagesPointingToThis;
     public double getCombinedScore() {
         return combinedScore;
     }
@@ -24,6 +25,8 @@ public class PageResult {
     }
 
     ArrayList<String> pointingTo = null;
+    HashMap<String, Boolean> pointingToHashmap = new HashMap<>();
+
     public double getPR() {
         return PR;
     }
@@ -40,6 +43,25 @@ public class PageResult {
 
     public void setDocument(Document doc) {
         this.doc = doc;
+        //Generate the pointing hashmap earlier...
+        List<String> pageLinks = (List<String>) this.doc.get("pageLinks");
+        for (String link: pageLinks) {
+            if(link == null) continue;;
+            this.pointingToHashmap.put(link, true);
+        }
+    }
+
+    public void addPagePointingToMe(ObjectId oId) {
+        if(this.pagesPointingToThis == null) this.pagesPointingToThis = new ArrayList<>();
+        this.pagesPointingToThis.add(oId);
+    }
+
+    public boolean isPointingPagesSet() {
+        return this.pagesPointingToThis != null;
+    }
+
+    public ArrayList<ObjectId> getPagesPointingToThis() {
+        return this.pagesPointingToThis;
     }
 
     public ArrayList<String> getPointingTo() {
@@ -88,6 +110,9 @@ public class PageResult {
 
     public void addToken(String token) {
         tokens.add(token);
+    }
+    public HashMap<String, Boolean> getPointingToHashMap() {
+        return this.pointingToHashmap;
     }
 
     public String getCountryCode() {

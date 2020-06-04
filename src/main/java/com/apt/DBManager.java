@@ -1,23 +1,16 @@
 package com.apt;
 
+import com.mongodb.client.model.*;
 import edu.stanford.nlp.util.Pair;
-import edu.stanford.nlp.util.Triple;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 
-import com.mongodb.client.model.Aggregates;
-import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Indexes;
-import com.mongodb.client.model.IndexOptions;
-
-import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.result.UpdateResult;
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.*;
 
-import javax.print.Doc;
-import java.beans.Expression;
+import java.lang.reflect.Array;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -72,6 +65,8 @@ public class DBManager {
             this.nersCollection.insertOne(nerEntry);
         }
     }
+
+
 
     public void addProcessedPage(Page page){
         if(page.getInvalid()) return;
@@ -159,13 +154,18 @@ public class DBManager {
         return this.invertedCollection.find(Filters.eq("token", token));
     }
 
+    public MongoCursor<Document> getAllPages() {
+        return this.processedPagesCollection.find()
+                .projection(Projections.fields(Projections.include("pageLink", "pageLinks"))).iterator();
+    }
+
     public MongoIterable<Document> getPagesPointingTo(String link) {
         String[] values = {link};
         return this.processedPagesCollection.find(
                 Filters.in(
                         "pageLinks",
                         Arrays.asList(values)
-                ));
+                )).projection(Projections.fields(Projections.include("pageLink")));
     }
 
     public void saveUnprocessedLinks(List<String> links){

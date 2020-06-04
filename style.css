@@ -72,6 +72,10 @@ li.image {
     background-color: #000;
     max-width: 29vw;
 }
+li a h3{
+    display: inline-block;
+    width: fit-content;
+}
 li.image a{
     display: flex;
     width: 100%;

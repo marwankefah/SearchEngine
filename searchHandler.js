@@ -30,12 +30,12 @@ document.getElementById("searchForm").addEventListener("submit", (e) => {
        if(window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2){
            if(window.isImageSearch){
                if(localStorage.getItem("isImageLast") === "true"){
-                   loaderItem.remove();
+                   loaderItem.style.display = "none";
                    return;
                }
            }else{
                if(localStorage.getItem("isLast") === "true"){
-                   loaderItem.remove();
+                   loaderItem.style.display = "none";
                    return;
                }
            }
@@ -66,6 +66,7 @@ async function searchImage(isNew = false){
     if(resultList.style.display === "none"){
         resultList.style.display = "initial";
     }
+    loaderItem.style.display = "none";
 
     const idx = localStorage.getItem("imageIdx")
     const link = idx && !isNew ? `http://localhost:8080/search?img=on&q=${searchQuery}&cc=${cc}&idx=${Number(idx)}`
@@ -77,13 +78,15 @@ async function searchImage(isNew = false){
         .then(resp => {
             localStorage.setItem("imageIdx", resp.idx.toString());
             localStorage.setItem("isImageLast", resp.isLast.toString());
+            if(!loaderItem) return resp.data;
             if(resp.isLast){
-                document.querySelector('.loaderItem').style.display = "none";
+                loaderItem.style.display = "none";
             }else{
-                document.querySelector('.loaderItem').style.display = "initial";
+                loaderItem.style.display = "initial";
             }
             return resp.data;
         }).catch(e => {
+            console.log(e);
             return [];
         });
 
@@ -166,9 +169,8 @@ function addPageResult(page, searchQuery){
     let li = document.createElement('li');
     let header = document.createElement('h3');
     header.innerText = page.title;
-
     let description = document.createElement('p');
-    description.innerText = getFirstOccurrenceOfAny(page.content,
+    description.innerHTML = getFirstOccurrenceOfAny(page.content,
         searchQuery.split(' ')
             .map(word => word.replace(/"/g, ''))
     );
@@ -182,17 +184,20 @@ function addPageResult(page, searchQuery){
 }
 
 function getFirstOccurrenceOfAny(content, words){
+    debugger;
     for(const word of words){
-        const i = content.indexOf(word);
+        const REGEX = new RegExp(word, 'i');
+        const i = content.search(REGEX);
         if(i !== -1){
-            let fullStatement = content.substr(0, content.indexOf(".", content.indexOf('twitter')));
+            let fullStatement = content.substr(content.indexOf(" ", i - 150));
+            fullStatement = fullStatement.replace(REGEX, "<b>" + word + "</b>");
             if(fullStatement.length > MAX_CHAR_COUNT){
                 return fullStatement.substr(0, MAX_CHAR_COUNT - 3) + "...";
             }
             return fullStatement;
         }
     }
-    return "";
+    return "The token is probably generated using JavaScript";
 }
 
 window.onbeforeunload = () => {
@@ -253,6 +258,7 @@ function addToSuggestionList(result = ""){
 
 document.getElementById("imgSearchBtn").addEventListener("click", () => {
     window.isImageSearch = true;
+    console.log('lol');
 });
 document.getElementById("searchBtn").addEventListener("click", () => {
     window.isImageSearch = false;

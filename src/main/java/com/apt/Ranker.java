@@ -1,5 +1,6 @@
 package com.apt;
 
+import com.mongodb.client.MongoCursor;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 
@@ -9,27 +10,24 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 public class Ranker {
 
-    private final double EPSILON = 0.001;
+    private static final double EPSILON = 1;
     ConcurrentHashMap<ObjectId, PageResult> network;
+    private static HashMap<ObjectId, PageResult> staticNetwork;
+    private static PageResult[] staticValues;
     ConcurrentHashMap<ObjectId, PageResult> pageResults;
     private ArrayList<PageResult> resultsList;
+
     //Note: The same index that points to a value is used in the adjacency matrix...
     PageResult[] values;
     boolean[][] mat;
-    public Ranker(ConcurrentHashMap<ObjectId, PageResult> pageResults, String countryCode) {
-        this.network = pageResults;
-        this.pageResults = new ConcurrentHashMap<>();
-        Iterator<PageResult> list = pageResults.values().iterator();
-        while(list.hasNext()){
-            PageResult entry = list.next();
-            this.pageResults.put(entry.getDocumentID(), entry);
-        }
-        //build our network....
-        this.generateNetwork(null);
-        this.generateAdjacencyMatrix();
-        this.computePR();
-        this.setScore(countryCode);
-        this.rank();
+    public Ranker() {
+        System.out.println("Started initialization");
+        staticNetwork = initialize();
+        System.out.println("Finished Initialization");
+        staticValues = generateNetworkArray();
+        System.out.println("Started PR computation, Will take around 5 minutes!");
+        computePRStatic();
+        System.out.println("Finished PR computation");
     }
 
 
@@ -41,13 +39,13 @@ public class Ranker {
         return copyOnWriteArrayList;
     }
 
-    private void setScore(String countryCode) {
-        Iterator<PageResult> iterator = this.pageResults.values().iterator();
+    private static void setScore(CopyOnWriteArrayList<PageResult> pageResults, String countryCode) {
+        Iterator<PageResult> iterator = pageResults.iterator();
         while (iterator.hasNext()){
             PageResult entry = iterator.next();
-            double combinedScore = entry.getTfIDF() + entry.getPR() * 0.7;
+            double combinedScore = (5 * entry.getTfIDF()) + entry.getPR();
             if(countryCode.equals(entry.getCountryCode())){
-                combinedScore += 0.5 * combinedScore;
+                combinedScore += 0.01 * combinedScore;
             }
             String pubDateType = entry.getPubDate().getClass().toString();
             long pubDate;
@@ -58,10 +56,10 @@ public class Ranker {
             }
             if(pubDate > 0){
                 Date currentDate = new Date();
-                combinedScore += ((double)currentDate.getTime() - pubDate)
-                        / (currentDate.getTime() * 100);
+                combinedScore += (((double)currentDate.getTime() - pubDate)
+                        / (currentDate.getTime() * 100)) * 0.1;
             }
-            entry.setCombinedScore(combinedScore);
+            entry.setCombinedScore(combinedScore * 10000000);
         }
     }
 
@@ -76,15 +74,30 @@ public class Ranker {
             Iterator entries = DBManager.getInstance().getPagesPointingTo(page.getLink()).iterator();
             while(entries.hasNext()){
                 Document entry = (Document) entries.next();
-                if(network.containsKey(entry.getObjectId("_id"))){
+                ObjectId oId = entry.getObjectId("_id");
+                if(network.containsKey(oId)){
                     continue;
                 }else{
-                    PageResult p = new PageResult(entry.getObjectId("_id"), -1);
+                    PageResult p = new PageResult(oId, -1);
                     p.setDocument(entry);
                     generateNetwork(p);
                 }
             }
         }
+    }
+
+    private static HashMap<ObjectId, PageResult> initialize(){
+        //Get all documents in the database...
+        HashMap<ObjectId, PageResult> initialNetwork = new HashMap<>();
+        MongoCursor<Document> entries = DBManager.getInstance().getAllPages();
+        while (entries.hasNext()) {
+            Document entry = entries.next();
+            ObjectId oId = entry.getObjectId("_id");
+            PageResult p = new PageResult(oId, -1);
+            p.setDocument(entry);
+            initialNetwork.put(p.getDocumentID(), p);
+        }
+        return  initialNetwork;
     }
 
     private static String[] getUrlArray(ArrayList<Document> pointers) {
@@ -94,11 +107,15 @@ public class Ranker {
         }
         return urls;
     }
+
     private static boolean contains(ArrayList<String> arr, String url){
         for (String _url: arr) {
             if(_url.equals(url)) return true;
         }
         return false;
+    }
+    private static PageResult[] generateNetworkArray() {
+        return staticNetwork.values().toArray(PageResult[]::new);
     }
     private void generateAdjacencyMatrix() {
         //Create a network.length() x network.length() matrix;
@@ -120,6 +137,46 @@ public class Ranker {
 //                }
 //            }
 //        }
+    }
+
+    private static void computePRStatic() {
+        //Initialize page ranks...
+        for (int i = 0; i < staticValues.length; i++) {
+            staticValues[i].setPR((double)1 / staticValues.length);
+        }
+//        double currentEpsilon = 100;
+//        double currentPR = (double)1 / staticValues.length;
+        //Iterate for 5 times is enough.. (For our use case)
+        int counter = 0;
+        while(counter++ < 5){
+//            double PRSum = 0;
+            for (int i = 0; i < staticValues.length; i++) {
+                double PR = 0;
+
+                Iterator entries = DBManager.getInstance().getPagesPointingTo(staticValues[i].getLink()).iterator();
+                while(entries.hasNext()){
+                    Document entry = (Document) entries.next();
+                    ObjectId oId = entry.getObjectId("_id");
+                    PR += staticNetwork.get(oId).getPR() / staticNetwork.get(oId).getPointingToHashMap().size();
+                }
+//                for (int j = 0; j < staticValues.length; j++) {
+//                    if(i == j) continue;
+//                    Boolean exists = staticValues[j].getPointingToHashMap().get(staticValues[i].getLink());
+//                    if(exists != null && exists == true){
+//                        PR += staticValues[j].getPR() / staticValues[j].getPointingToHashMap().size();
+//                    }
+//                    if(staticValues[j].getPointingToHashMap().containsKey(staticValues[i].getLink())){
+//                    }
+//                    if(contains(staticValues[j].getPointingToHashMap(), staticValues[i].getLink())) {
+//                    }
+//                }
+                staticValues[i].setPR(PR);
+//                PRSum += PR;
+            }
+//            PRSum /= staticValues.length;
+//            currentEpsilon = Math.abs(PRSum - currentPR) / currentPR * 100;
+//            currentPR = PRSum;
+        }
     }
 
     //This uses the simplified PageRank algorithm not the actual one with the damping factor.
@@ -150,10 +207,34 @@ public class Ranker {
     }
 
     //Should rank according to popularity & relevance..
-    private void rank(){
-        this.resultsList = new ArrayList<>();
-        resultsList.addAll(this.pageResults.values());
-        Collections.sort(resultsList, new ScoreComparator());
+    public static CopyOnWriteArrayList<PageResult> rank(ConcurrentHashMap<ObjectId, PageResult> pageResults, String countryCode){
+        CopyOnWriteArrayList<PageResult> resultsList = new CopyOnWriteArrayList<>();
+        //Filter the results...
+        Iterator<PageResult> iterator = pageResults.values().iterator();
+//        for (PageResult result: pageResults) {
+//            resultsList.add(staticNetwork.get(result.getDocumentID()));
+//        }
+        while(iterator.hasNext()){
+            PageResult result = iterator.next();
+//            PageResult pageResult = new PageResult(oId, entry.getDouble("tfIdf"));
+            result.setPR(staticNetwork.get(result.getDocumentID()).getPR());
+            resultsList.add(result);
+        }
+//        resultsList.addAll(this.pageResults.values());
+        setScore(resultsList, countryCode);
+        try{
+            Collections.sort(resultsList, new ScoreComparator());
+        }catch (Exception e){
+            Comparator<PageResult> comparator = new ScoreComparator();
+            for (PageResult p1: resultsList) {
+                for (PageResult p2: resultsList) {
+                    if(comparator.compare(p1,p2) != -comparator.compare(p2,p1)){
+                        System.out.println("Loooohl");
+                    }
+                }
+            }
+        }
+        return resultsList;
 
     }
 //
@@ -187,13 +268,7 @@ public class Ranker {
     private static class ScoreComparator implements Comparator<PageResult> {
 
         public int compare(PageResult a, PageResult b) {
-            double subtraction = a.getCombinedScore() - b.getCombinedScore();
-            if(subtraction > 0){
-                return -1;
-            }else if(subtraction < 0){
-                return 1;
-            }
-            return 0;
+            return Double.compare(a.getCombinedScore(), b.getCombinedScore());
         }
 
     }
