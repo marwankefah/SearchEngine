@@ -1,8 +1,8 @@
 # SearchEngine
 
-# Landing HomePage
+### Landing HomePage
 ![HomePage](https://github.com/marwankefah/SearchEngine/blob/master/homePage.PNG)
-# Sample Image Search
+### Sample Image Search
 ![ImageSearch](https://github.com/marwankefah/SearchEngine/blob/master/ImageSearch.PNG)
 # Table of Contents
 
