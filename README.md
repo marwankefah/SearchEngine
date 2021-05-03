@@ -1,5 +1,9 @@
 # SearchEngine
 
+# Landing HomePage
+![HomePage](https://github.com/marwankefah/SearchEngine/blob/master/homePage.PNG)
+# Sample Image Search
+![ImageSearch](https://github.com/marwankefah/SearchEngine/blob/master/ImageSearch.PNG)
 # Table of Contents
 
 Objectives
@@ -74,7 +78,6 @@ Your relevance score has to include the following aside from **word similarity**
 
 - **How recent is the web page?** A web page&#39;s score increases because it was published recently. Itshouldbenotedthatsomewebsitesdonotmentionthewebpage&#39;screationdateintheHTML.
 
-.
 
 ### Trends:
 
